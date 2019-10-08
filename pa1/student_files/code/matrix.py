@@ -34,7 +34,7 @@ class Matrix:
     self.matrix[0][3].set_weights(0,None,4)
     self.matrix[0][4].set_weights(None,None,3)
     #
-    self.matrix[1][0].set_weights(3,None,4)
+    self.matrix[1][0].set_weights(3,None,3)
     self.matrix[1][1].set_weights(2,None,6)
     self.matrix[1][2].set_weights(4,None,5)
     self.matrix[1][3].set_weights(2,None,2)
@@ -91,7 +91,40 @@ class Matrix:
         #if len(find_max)>0:
         #  self.matrix[i][j].weight=max_value   
         print("i j:",i,j,"find_max:",find_max)
-
+      
+  def backtrack(self):
+    i = self.num_rows-1
+    j = self.num_cols-1
+    node_path=[]
+    node_path.append((i,j))
+    while(i>0 and j>0):
+      print("backtrack i j:",i,j)
+      if(i>0 and j>0):
+        top=self.matrix[i-1][j].weight
+        #upper_left = self.matrix[i-1][j-1].weight
+        left = self.matrix[i][j-1].weight
+        max_list=[]
+        max_list.append(top)
+        max_list.append(left)
+        max_weight = max(max_list)
+        if (max_weight == top):
+          i=i-1
+        elif(max_weight==left):
+          j=j-1
+        node_path.append((i,j)) 
+      elif(i==0 and j>0 ):
+        #find max and update
+        top = self.matrix[i][j-1]
+        j=j-1
+        node_path.append((i,j))
+      elif(i>0 and j==0):
+        #find max and update
+        left = self.matrix[i-1][j]
+        i=i-1
+        node_path.append((i,j))
+      else:
+        print("backtrach origin i j",i,j)
+    print("node_path:",node_path)
   def print_me(self):
     print('----------------------------')
     for i in range(0,self.num_rows):
@@ -106,4 +139,6 @@ graph=Matrix(5,5)
 graph.test()
 print("*************************")
 graph.set_long()
+print("$$$$$$$$$$$$$$$$$$$$$$$$$")
+graph.backtrack()
 
