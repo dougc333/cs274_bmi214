@@ -31,8 +31,9 @@ class MatchMatrix(object):
     """
     Match matrix class stores the scores of matches in a data structure
     """
-    def __init__(self):
+    def __init__(self,len_alphabet_b, len_alphabet_b):
         ### FILL IN ###
+        self.matrix = np.zeros((len_alphabet_a,len_alphabet_b))
 
     def set_score(self, a, b, score):
         """
@@ -73,6 +74,7 @@ class ScoreMatrix(object):
         self.score_matrix # FILL IN 
         # you need to figure out a way to represent this and how to initialize
         # Hint: it may be helpful to have an object for each entry
+
 
     def get_score(self, row, col):
         ### FILL IN ###
@@ -134,7 +136,7 @@ class AlignmentParameters(object):
         self.alphabet_b = ""
         self.len_alphabet_a = 0
         self.len_alphabet_b = 0
-        self.match_matrix = MatchMatrix()
+        self.match_matrix = MatchMatrix(self.len_alphabet_a, self.len_alphabet_a)
 
     def load_params_from_file(self, input_file): 
         """
@@ -143,6 +145,19 @@ class AlignmentParameters(object):
         Input:
            input_file = specially formatted alignment input file
         """
+        lines = [line.rstrip('\n') for line in open('filename')]
+        self.seq_a = lines[0] 
+        self.seq_b = lines[1] 
+        self.global_alignment = lines[2] 
+        de_list = split(lines[3])
+        self.dx = de_list[0]
+        self.ex = de_list[1]
+        self.dy = de_list[2]
+        self.ey = de_list[3]  
+        self.len_alphabet_a = lines[4]
+        self.alphabet_a = lines[5] 
+        self.len_alphabet_b = lines[6]
+        self.alphabet_b = lines[7] 
 
         ### FILL IN ###
 

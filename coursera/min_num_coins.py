@@ -2,8 +2,7 @@ import sys
 
 def minCoins(coins,V):
   m=len(coins)
-  lookup = [0 for i in range(V+1)]
-  lookup[0]=0
+  lookup=[0]*(V+1)
   for i in range(1,V+1):
     lookup[i] = sys.maxsize
   for i in range(1,V+1):
