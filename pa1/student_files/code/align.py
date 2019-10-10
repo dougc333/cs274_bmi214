@@ -96,16 +96,23 @@ class ScoreMatrix(object):
         self.name = name # identifier for the score matrix - Ix, Iy, or M
         self.nrow = nrow
         self.ncol = ncol
-        self.score_matrix # FILL IN 
+        self.score_matrix =[]
+        for i in range(0,nrows):
+            row=[]
+            for j in range(0,ncol):
+                row.append(Node(i,j))
+            self.matrix.append(row)
+        # FILL IN 
         # you need to figure out a way to represent this and how to initialize
         # Hint: it may be helpful to have an object for each entry
 
 
     def get_score(self, row, col):
-        ### FILL IN ###
+        return self.score_matrix[row][col]
         
     def set_score(self, row, col, score):    
         ### FILL IN ###
+        self.score_matrix[row][col] = score
 
     def get_pointers(self, row, col):
         """
@@ -114,9 +121,11 @@ class ScoreMatrix(object):
          ex. [(1,1), (1,0)]
         """
         ### FILL IN ###
+        print("do nothing get pointers")
 
     def set_pointers(self, row, col): ### FILL IN - this needs additional arguments ###
         ### FILL IN ###
+        print("do nothing")
 
     def print_scores(self):
         """
@@ -133,6 +142,7 @@ class ScoreMatrix(object):
 
         """
         ### FILL IN ###
+        print("print score_matrix")
 
 
     def print_pointers(self):
@@ -141,6 +151,7 @@ class ScoreMatrix(object):
         """
 
         ### FILL IN ###
+        print("print pointers")
 
 class AlignmentParameters(object):
     """
@@ -228,7 +239,7 @@ class Align(object):
         Method to populate the score matrices based on the data in align_params.
         Should call update(i,j) for each entry in the score matrices
         """
-
+        
         ### FILL IN ###
 
     def update(self, row, col):
