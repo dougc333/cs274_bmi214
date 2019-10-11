@@ -73,7 +73,7 @@ class Node:
     self.east=None
     self.se=None
     self.south=None
-    self.weight = -1
+    self.weight = 0.
 
   def set_weights(self,east, se, south):
     self.east = east
@@ -98,7 +98,7 @@ class ScoreMatrix(object):
         for i in range(0,self.nrow):
             row=[]
             for j in range(0,self.ncol):
-                row.append(Node(i,j).set_weights(0))
+                row.append(Node(i,j))
             self.score_matrix.append(row)
         # FILL IN 
         # you need to figure out a way to represent this and how to initialize
@@ -138,8 +138,8 @@ class ScoreMatrix(object):
 
         """
         ### FILL IN ###
-        for i in range(0,nrow):
-            for j in range(0,ncols):
+        for i in range(0,self.nrow):
+            for j in range(0,self.ncol):
                 print("i j",i,j,self.score_matrix[i][j].weight)
 
     '''
@@ -156,29 +156,22 @@ class AlignmentParameters(object):
     """
     Object to hold a set of alignment parameters from an input file.
     """
-    dx = 0
-    ex = 0
-    dy = 0
-    ey = 0
-    
     def __init__(self):
         # default values for variables that are filled in by reading
         # the input alignment file
         self.seq_a = ""
         self.seq_b = ""
-        self.global_alignment = False    
+        self.global_alignment = False
+        self.dx = 0
+        self.ex = 0
+        self.dy = 0
+        self.ey = 0    
         self.alphabet_a = "" 
         self.alphabet_b = ""
         self.len_alphabet_a = 0
         self.len_alphabet_b = 0
         self.match_matrix = MatchMatrix(self.alphabet_a, self.alphabet_b, self.len_alphabet_a, self.len_alphabet_a)
     
-    def get_seqa(self):
-        return self.seq_a
-    def get_seqb(self):
-        return self.seq_b
-    def get_mm(self):
-        return self.match_matrix
 
     def load_params_from_file(self, input_file): 
         """
@@ -200,11 +193,10 @@ class AlignmentParameters(object):
         self.alphabet_a = lines[5] 
         self.len_alphabet_b = int(lines[6])
         self.alphabet_b = lines[7]
-        print("num_lines:",len(lines))
+        #print("num_lines:",len(lines))
         self.match_matrix = MatchMatrix(self.alphabet_a, self.alphabet_b, self.len_alphabet_a, self.len_alphabet_b)
         for x in range(8,len(lines)):
-            print(lines[x])
-            #parse and set match matrix
+            #print(lines[x])
             parse_input = lines[x].split()
             row = parse_input[0] #reduntant
             col = parse_input[1] #redundant
@@ -229,14 +221,15 @@ class Align(object):
         """
         self.input_file = input_file
         self.output_file = output_file
-        self.align_params = AlignmentParameters(self.input_file) 
+        self.align_params = AlignmentParameters()
+        self.align_params.load_params_from_file(self.input_file) 
 
         ### FILL IN - note be careful about how you initialize these! ###
-        self.M = ScoreMatrix("M",len(AlignmentParameters.get_seqa())+1, len(AlignmentParameters.get_seqb())+1)
-        self.Ix = ScoreMatrix("Ix",len(AlignmentParameters.get_seqa())+1, len(AlignmentParameters.get_seqb())+1)
-        self.Iy = ScoreMatrix("Iy",len(AlignmentParameters.get_seqa())+1, len(AlignmentParameters.get_seqb())+1)
+        self.M = ScoreMatrix("M",len(self.align_params.seq_a)+1, len(self.align_params.seq_b)+1)
+        self.Ix = ScoreMatrix("Ix",len(self.align_params.seq_a)+1, len(self.align_params.seq_b)+1)
+        self.Iy = ScoreMatrix("Iy",len(self.align_params.seq_a)+1, len(self.align_params.seq_b)+1)
         
-    '''
+
     def align(self):
         """
         Main method for running alignment.
@@ -251,33 +244,54 @@ class Align(object):
         # perform a traceback and write the output to an output file
 
         ### FILL IN ###
-    '''
+    
     def populate_score_matrices(self):
         """
         Method to populate the score matrices based on the data in align_params.
         Should call update(i,j) for each entry in the score matrices
         """
         ### FILL IN ###
-        for i in range(0,len(AlignmentParameters.get_seqa())+1):
-            for j in range(0,len(AlignmentParameters.get_seqb())+1):
+        for i in range(0,len(self.align_params.seq_a)+1):
+            for j in range(0,len(self.align_params.seq_b)+1):
                 if (i==0 and j==0):
-                    self.M[i][j].weight=0
+                    self.M.score_matrix[i][j].weight=0
+                    #self.Ix.score_matrix[i][j].weight=0
+                    #self.Iy.score_matrix[i][j].weight=0
                 elif(i==0 and j>0):
-                    self.Iy[i][j].weight = max((self.M[i][j-1]-AlignmentParameters.dx),(self.Iy[i][j-1]-AlignmentParameters.ex))
+                    #updateIx
+                    self.Ix.score_matrix[i][j].weight = max((self.M.score_matrix[i][j-1].weight-self.align_params.dy),(self.Ix.score_matrix[i][j-1].weight-self.align_params.ey))
                 elif(j==0 and i>0):
-                    self.Iy[i][j].weight = max((self.M[i-1][j]-AlignmentParameters.dy),(self.Iy[i][j-1]-AlignmentParameters.ey))
+                    #updateIy
+                    self.Iy.score_matrix[i][j].weight = max((self.M.score_matrix[i-1][j].weight-self.align_params.dx),(self.Iy.score_matrix[i][j-1].weight-self.align_params.ex))
                 elif(i!=0 and j!=0):
-                    first = max(
-                    self.M[i-1][j-1].weight + AlignmentParameters.get_mm().getScore(),
-                    self.Ix[i-1][j-1].weight + AlignmentParameters.get_mm().get_score(),
-                    self.Iy[i-1][j-1].weight + AlignmentParameters.getmm().getScore()) 
-                    second = max()
-                    third = max()
-                    final=max(first,second,third)
+                    #updateM, updateIx, updateIy
+                    print(type(self.align_params.seq_a[i-1]))
+                    print(self.align_params.seq_a[i-1])
+                    print(self.align_params.seq_b[j-1])
+                    print(self.align_params.match_matrix.get_score(self.align_params.seq_a[i-1],self.align_params.seq_b[j-1]))
+                    
+                    self.M.score_matrix[i][j].weight = max(
+                    self.M.score_matrix[i-1][j-1].weight + float(self.align_params.match_matrix.get_score(self.align_params.seq_a[i-1],self.align_params.seq_b[j-1])),
+                    self.Ix.score_matrix[i-1][j-1].weight + float(self.align_params.match_matrix.get_score(self.align_params.seq_a[i-1],self.align_params.seq_b[j-1])),
+                    self.Iy.score_matrix[i-1][j-1].weight + float(self.align_params.match_matrix.get_score(self.align_params.seq_a[i-1],self.align_params.seq_b[j-1]))) 
+                    
+                    self.Ix.score_matrix[i][j].weight  = max(
+                        self.M.score_matrix[i-1][j].weight - self.align_params.dy,
+                        self.Ix.score_matrix[i-1][j].weight - self.align_params.ey
+                    )
+                    self.Iy.score_matrix[i][j].weight = max(
+                        self.M.score_matrix[i][j-1].weight - self.align_params.dx,
+                        self.Iy.score_matrix[i][j-1].weight - self.align_params.ex
+                    )
                 else:
                     print("should not see this")
-
-            
+        
+        self.M.print_scores()
+        print("----------------")
+        self.Ix.print_scores()
+        print("----------------")
+        self.Iy.print_scores()
+    '''       
     def update(self, row, col):
         """
         Method to update the matrices at a given row and column index.
@@ -298,6 +312,7 @@ class Align(object):
 
     def update_iy(self, row, col):
         ### FILL IN ###
+
 
     def find_traceback_start(self):
         """
@@ -323,7 +338,8 @@ class Align(object):
 
     def write_output(self):
         ### FILL IN ###
-    
+    '''
+
 def main():
 
     # check that the file is being properly used
@@ -334,7 +350,7 @@ def main():
     # input variables
     input_file = sys.argv[1]
     output_file = sys.argv[2]
-
+    
     # create an align object and run
     align = Align(input_file, output_file)
     align.align()
