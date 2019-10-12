@@ -106,6 +106,7 @@ class TestAlignmentClasses(unittest.TestCase):
         ### FILL IN for checking pointers! ###
         # note - in this example, it should point to M -AND- Ix
         # check by hand!
+        
 
 
     def test_update_m(self):
