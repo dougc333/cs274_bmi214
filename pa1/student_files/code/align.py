@@ -110,7 +110,7 @@ class ScoreMatrix(object):
     def set_score(self, row, col, score):    
         ### FILL IN ###
         self.score_matrix[row][col].weight = score
-    '''
+    
     def get_pointers(self, row, col):
         """
         Returns the indices of the entries that are pointed to
@@ -121,7 +121,7 @@ class ScoreMatrix(object):
         
     def set_pointers(self, row, col): ### FILL IN - this needs additional arguments ###
         ### FILL IN ###
-    '''
+    
 
     def print_scores(self):
         """
@@ -198,7 +198,7 @@ class AlignmentParameters(object):
         for x in range(8,len(lines)):
             #print(lines[x])
             parse_input = lines[x].split()
-            row = parse_input[0] #reduntant
+            row = parse_input[0] #redundant
             col = parse_input[1] #redundant
             firstAA = parse_input[2] 
             secondAA = parse_input[3]
@@ -265,7 +265,7 @@ class Align(object):
                     self.Iy.score_matrix[i][j].weight = max((self.M.score_matrix[i-1][j].weight-self.align_params.dx),(self.Iy.score_matrix[i][j-1].weight-self.align_params.ex))
                 elif(i!=0 and j!=0):
                     #updateM, updateIx, updateIy
-                    print(type(self.align_params.seq_a[i-1]))
+
                     print(self.align_params.seq_a[i-1])
                     print(self.align_params.seq_b[j-1])
                     print(self.align_params.match_matrix.get_score(self.align_params.seq_a[i-1],self.align_params.seq_b[j-1]))
@@ -291,7 +291,7 @@ class Align(object):
         self.Ix.print_scores()
         print("----------------")
         self.Iy.print_scores()
-    '''       
+           
     def update(self, row, col):
         """
         Method to update the matrices at a given row and column index.
@@ -306,14 +306,29 @@ class Align(object):
 
     def update_m(self, row, col):
         ### FILL IN ###
+         self.M.score_matrix[i][j].weight 
+         = max(
+            self.M.score_matrix[i-1][j-1].weight + float(self.align_params.match_matrix.get_score(self.align_params.seq_a[i-1],self.align_params.seq_b[j-1])),
+            self.Ix.score_matrix[i-1][j-1].weight + float(self.align_params.match_matrix.get_score(self.align_params.seq_a[i-1],self.align_params.seq_b[j-1])),
+            self.Iy.score_matrix[i-1][j-1].weight + float(self.align_params.match_matrix.get_score(self.align_params.seq_a[i-1],self.align_params.seq_b[j-1]))
+            ) 
+                    
 
     def update_ix(self, row, col):
-        ### FILL IN ###
+        self.Ix.score_matrix[i][j].weight  
+        = max(
+            self.M.score_matrix[i-1][j].weight - self.align_params.dy,
+            self.Ix.score_matrix[i-1][j].weight - self.align_params.ey
+            )
 
     def update_iy(self, row, col):
-        ### FILL IN ###
+        self.Iy.score_matrix[i][j].weight 
+        = max(
+            self.M.score_matrix[i][j-1].weight - self.align_params.dx,
+            self.Iy.score_matrix[i][j-1].weight - self.align_params.ex
+            )
 
-
+    '''
     def find_traceback_start(self):
         """
         Finds the location to start the traceback..

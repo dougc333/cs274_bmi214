@@ -78,7 +78,7 @@ class TestAlignmentClasses(unittest.TestCase):
         #self.assertEqual(match_mat.get_score("C", "G"), -0.3)
         #self.assertEqual(match_mat.get_score("G", "C"), 0)
 
-    '''
+    
     def test_update_ix(self):
         """
         Test AlignmentAlgorithm's update Ix
@@ -92,7 +92,6 @@ class TestAlignmentClasses(unittest.TestCase):
         # create an alignment object
         align = Align("", "")
         align.align_params = align_params
-
         align.m_matrix = ScoreMatrix("M", 5, 4)
         align.ix_matrix = ScoreMatrix("Ix", 5, 4)
         align.m_matrix.set_score(2,2, 3)
@@ -114,6 +113,27 @@ class TestAlignmentClasses(unittest.TestCase):
         Test AlignmentAlgorithm's update M
         """
         ### FILL IN ###
+        # configure alignment params
+        align_params = AlignmentParameters()
+        
+        # create an alignment object
+        align = Align("", "")
+        #do we need align.mm? when is MM made? 
+        mm = align_params.match_matrix("A","A")
+        mm.set_score("A","A",1)
+        align.align_params = align_params
+        align.m_matrix = ScoreMatrix("M", 5, 4)
+        align.m_matrix.set_score(2,2, 3.)
+        align.ix_matrix = ScoreMatrix("Ix", 5, 4)
+        align.m_matrix.set_score(2,2, 1.)
+        align.iy_matrix = ScoreMatrix("Iy", 5, 4)
+        align.m_matrix.set_score(2,2, 1.)
+
+        # run the method!
+        align.update_m(3, 3)
+
+        score = align.m_matrix.get_score(3,3)
+        self.assertEqual(score, 3)
         return
     
     def test_update_iy(self):
@@ -121,6 +141,26 @@ class TestAlignmentClasses(unittest.TestCase):
         Test AlignmentAlgorithm's update Iy
         """
         ### FILL IN ###
+         # configure alignment params
+        align_params = AlignmentParameters()
+        align_params.dx = 1
+        align_params.ex = 0.5
+
+        # create an alignment object
+        align = Align("", "")
+        align.align_params = align_params
+
+        align.m_matrix = ScoreMatrix("M", 5, 4)
+        align.ix_matrix = ScoreMatrix("Iy", 5, 4)
+        align.m_matrix.set_score(2,2, 3)
+        align.ix_matrix.set_score(2,2, 2.5)
+
+        # run the method!
+        align.update_iy(2, 3)
+
+        score = align.ix_matrix.get_score(3,2)
+        self.assertEqual(score, 2)
+
         return
 
     def test_traceback_start(self):
