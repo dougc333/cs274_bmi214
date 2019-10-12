@@ -14,7 +14,8 @@ Usage: python align.py input_file output_file
 
 
 import sys
-
+import copy 
+from pprint import pprint
 
 #### ------ USEFUL FUNCTIONS ------- ####
 def fuzzy_equals(a, b):
@@ -63,7 +64,7 @@ class MatchMatrix(object):
            the score of that match
         """
         ### FILL IN ###
-        return self.matrix[self.alphabet_a.index(a)][self.alphabet_b.index(b)]
+        return float(self.matrix[self.alphabet_a.index(a)][self.alphabet_b.index(b)])
 
 
 class Node:  
@@ -74,6 +75,9 @@ class Node:
     self.se=None
     self.south=None
     self.weight = 0.
+    self.M_pointer = []
+    self.Ix_pointer = []
+    self.Iy_pointer = []
     self.pointers = []
 
   def set_weights(self,east, se, south):
@@ -120,11 +124,19 @@ class ScoreMatrix(object):
          ex. [(1,1), (1,0)]
         """
         ### FILL IN ###
-        return self.score_matrix[row][col].pointers
+        #define this format as M,Ix,Iy pointers. empty list if nothing there
+        pointer_list = []
+        pointer_list.extend(self.score_matrix[row][col].M_pointer)
+        pointer_list.extend(self.score_matrix[row][col].Ix_pointer)
+        pointer_list.extend(self.score_matrix[row][col].Iy_pointer)
+        
+        return pointer_list
 
-    def set_pointers(self, row, col,add_tuple): ### FILL IN - this needs additional arguments ###
+    def set_pointers(self, row, col,M_tuple,Ix_tuple,Iy_tuple): ### FILL IN - this needs additional arguments ###
         ### FILL IN ###
-        self.score_matrix[row][col].pointers.append(tuple)
+        self.score_matrix[row][col].M_pointer.append(M_tuple)
+        self.score_matrix[row][col].Ix_pointer.append(Ix_tuple)
+        self.score_matrix[row][col].Iy_pointer.append(Iy_tuple)
 
     def print_scores(self):
         """
@@ -151,16 +163,21 @@ class ScoreMatrix(object):
             print(" ".join([str(x.weight) for x in row]))
 
     
-    def print_pointers(self):
+    def print_pointers_old(self):
         """
         Returns a nicely formatted string containing the pointers for each entry in the score matrix. Use this for debugging!
         """
+        for i in range(0,self.nrow):
+            for j in range(0,self.ncol):
+                print("i j",i,j,self.score_matrix[i][j].pointers)
 
-        ### FILL IN ###
-        for i in range(0,nrow):
-            for j in range(0,ncol):
-                print(self.score_matrix.)
-    
+    def print_pointers(self):
+        for i in range(1,self.nrow):
+            for j in range(1,self.ncol):
+                #merge all 3 into a list to remove empty list
+                print(i,j,["M"+str(x) for x in self.score_matrix[i][j].M_pointer],["Ix"+str(x) for x in self.score_matrix[i][j].Ix_pointer],["Iy"+str(x) for x in self.score_matrix[i][j].Iy_pointer])
+                
+                
 
 class AlignmentParameters(object):
     """
@@ -193,7 +210,11 @@ class AlignmentParameters(object):
         lines = [line.rstrip('\n') for line in open(input_file)]
         self.seq_a = lines[0] 
         self.seq_b = lines[1] 
-        self.global_alignment = int(lines[2]) 
+        global_alignment = int(lines[2]) 
+        if global_alignment == 0:
+            self.global_alignment = True
+        else:
+            self.global_alignment = False
         de_list = lines[3].split()
         self.dx = float(de_list[0])
         self.ex = float(de_list[1])
@@ -283,9 +304,9 @@ class Align(object):
                     #print(self.align_params.match_matrix.get_score(self.align_params.seq_a[i-1],self.align_params.seq_b[j-1]))
                     
                     self.M.score_matrix[i][j].weight = max(
-                    self.M.score_matrix[i-1][j-1].weight + float(self.align_params.match_matrix.get_score(self.align_params.seq_a[i-1],self.align_params.seq_b[j-1])),
-                    self.Ix.score_matrix[i-1][j-1].weight + float(self.align_params.match_matrix.get_score(self.align_params.seq_a[i-1],self.align_params.seq_b[j-1])),
-                    self.Iy.score_matrix[i-1][j-1].weight + float(self.align_params.match_matrix.get_score(self.align_params.seq_a[i-1],self.align_params.seq_b[j-1]))
+                    self.M.score_matrix[i-1][j-1].weight + (self.align_params.match_matrix.get_score(self.align_params.seq_a[i-1],self.align_params.seq_b[j-1])),
+                    self.Ix.score_matrix[i-1][j-1].weight + (self.align_params.match_matrix.get_score(self.align_params.seq_a[i-1],self.align_params.seq_b[j-1])),
+                    self.Iy.score_matrix[i-1][j-1].weight + (self.align_params.match_matrix.get_score(self.align_params.seq_a[i-1],self.align_params.seq_b[j-1]))
                     ) 
                     
                     self.Ix.score_matrix[i][j].weight  = max(
@@ -302,31 +323,36 @@ class Align(object):
                     self.Ix.score_matrix[i-1][j].weight,
                     self.Iy.score_matrix[i][j-1].weight 
                     )
-                    
+                    print("i j:",i,j," max_value", max_value)
                     if max_value == self.M.score_matrix[i-1][j-1].weight:
                         self.M.score_matrix[i][j].pointers.append(("M(",i-1,j-1,")"))
+                        self.M.score_matrix[i][j].M_pointer.append((i-1,j-1))
                     elif(max_value == self.Ix.score_matrix[i-1][j].weight):
                         self.Ix.score_matrix[i][j].pointers.append(("Ix(",i-1,j,")"))
+                        self.M.score_matrix[i][j].Ix_pointer.append((i-1,j))
                     elif(max_value == self.Iy.score_matrix[i][j-1].weight):
                         self.Iy.score_matrix[i][j].pointers.append(("Iy(",i,j-1,")"))
+                        self.M.score_matrix[i][j].Iy_pointer.append((i,j-1))
                     else:
                         print("pointer setting should not see this i j",i,j)
                 else:
                     print("should not see this")
-        print("M")
         self.M.print_scores()
         print("----------------")
-        print("Ix")
         self.Ix.print_scores()
         print("----------------")
-        print("Iy")
         self.Iy.print_scores()
         print("----------------")
-        self.M.score_matrix.print_pointers()
-        #print("----------------")
-        #self..score_matrix.print_pointers()
-        #print("----------------")
-        #self.M.score_matrix.print_pointers()
+        print("M pointers")
+        self.M.print_pointers_old()
+        print("----------------")
+        print("Ix pointers")
+        self.Ix.print_pointers_old()
+        print("----------------")
+        print("Iy pointers")
+        self.Iy.print_pointers_old()
+        print("----------------")
+        self.M.print_pointers()
         
     def update(self, row, col):
         """
@@ -343,9 +369,9 @@ class Align(object):
     def update_m(self, row, col):
         ### FILL IN ###
          self.M.score_matrix[i][j].weight = max(
-            self.M.score_matrix[i-1][j-1].weight + float(self.align_params.match_matrix.get_score(self.align_params.seq_a[i-1],self.align_params.seq_b[j-1])),
-            self.Ix.score_matrix[i-1][j-1].weight + float(self.align_params.match_matrix.get_score(self.align_params.seq_a[i-1],self.align_params.seq_b[j-1])),
-            self.Iy.score_matrix[i-1][j-1].weight + float(self.align_params.match_matrix.get_score(self.align_params.seq_a[i-1],self.align_params.seq_b[j-1]))
+            self.M.score_matrix[i-1][j-1].weight + (self.align_params.match_matrix.get_score(self.align_params.seq_a[i-1],self.align_params.seq_b[j-1])),
+            self.Ix.score_matrix[i-1][j-1].weight + (self.align_params.match_matrix.get_score(self.align_params.seq_a[i-1],self.align_params.seq_b[j-1])),
+            self.Iy.score_matrix[i-1][j-1].weight + (self.align_params.match_matrix.get_score(self.align_params.seq_a[i-1],self.align_params.seq_b[j-1]))
         ) 
                     
 
@@ -386,11 +412,58 @@ class Align(object):
            ex. M(5,4)->Iy(4,3)->M(4,2)->Ix(3,1)->Ix(2,1)->M(1,1)->M(0,0)
         """
         ### FILL IN ###
-        return None
+        i = len(self.align_params.seq_a)
+        j = len(self.align_params.seq_b)
+        node_path=NodePath()
+        node_path.append((i,j))
+        while(i>0 and j>0):
+            print("backtrack i j:",i,j)
+            if(i>0 and j>0):
+                find_next=[]
+                find_next.extend(self.M.score_matrix[i][j].M_pointer)
+                find_next.extend(self.M.score_matrix[i][j].Ix_pointer)
+                find_next.extend(self.M.score_matrix[i][j].Iy_pointer)
+                if len(find_next)==1:
+                    new_i=find_next[0][0]
+                    new_j=find_next[0][1]
+                    print("find_next node:",new_i, new_j)
+                    node_path.append((new_i,new_j))
+                    i=new_i
+                    j=new_j
+                else:
+                    print("multiple paths")
+                    node_path.branch()
+            else:
+                print("backtrach origin i j",i,j)
+        print("node_path:",node_path)
 
     def write_output(self):
         ### FILL IN ###
         return None
+
+
+class NodePath:
+    def __init__(self):
+        '''
+        paths contain all the paths
+        '''
+        self.paths = [[]]
+    
+    def branch(self):
+        double_path = []
+        for x in path:
+            copy_me = copy.deepcopy(x)
+            double_path.append(copy_me)
+        for x in double_path:
+            self.paths.append(x)
+    def append(self, node):
+        '''
+        append single node to self.path
+        '''
+        for x in self.paths:
+            x.append(node)
+
+
 
 def main():
     # check that the file is being properly used
@@ -405,7 +478,7 @@ def main():
     # create an align object and run
     align = Align(input_file, output_file)
     align.align()
-
+    align.traceback()
 
 if __name__=="__main__":
     main()
