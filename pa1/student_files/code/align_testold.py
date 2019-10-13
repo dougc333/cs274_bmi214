@@ -20,36 +20,44 @@ Make sure align_key.py is located in the same directory, and the test_example.in
 """
 
 import unittest
-
 from align import *
 
 TEST_INPUT_FILE="test_example.input"
 
 class TestAlignmentClasses(unittest.TestCase):
-
+    
     def test_match_matrix(self):
         """
         Tests match matrix object
         """
-        match_matrix = MatchMatrix()
+        match_matrix = MatchMatrix("A","C",1,1)
         match_matrix.set_score("A", "C", 5)
+        #should do an assert of all the entries!
         self.assertEqual(match_matrix.get_score("A", "C"), 5)
 
+    
     def test_score_matrix_score(self):
         """
         Tests score matrix object score set + get methods
         """
         ### FILL IN ###
         # this should be very similar to test match matrix
-        return
-
+        M = ScoreMatrix("M",2,2)
+        M.set_score(1,1,3)
+        self.assertEqual(M.get_score(1,1),3)
+        
+    
     def test_score_matrix_pointers(self):
         """
         Tests score matrix object pointer set + get methods
         """
         ### FILL IN ###
-        return
+        M = ScoreMatrix("M",2,2)
+        M.set_pointers(1,1,[(0,0)],[],[])
+        self.assertEqual(M.get_pointers(1,1),[(0,0)])
 
+        
+    
     def test_param_loading(self):
         """
         Tests AlignmentParameters "load_params_from_file()" function
@@ -75,12 +83,11 @@ class TestAlignmentClasses(unittest.TestCase):
         self.assertEqual(match_mat.get_score("C", "G"), -0.3)
         self.assertEqual(match_mat.get_score("G", "C"), 0)
 
-
+    
     def test_update_ix(self):
         """
         Test AlignmentAlgorithm's update Ix
         """
-
         # configure alignment params
         align_params = AlignmentParameters()
         align_params.dy = 1
@@ -89,7 +96,6 @@ class TestAlignmentClasses(unittest.TestCase):
         # create an alignment object
         align = Align("", "")
         align.align_params = align_params
-
         align.m_matrix = ScoreMatrix("M", 5, 4)
         align.ix_matrix = ScoreMatrix("Ix", 5, 4)
         align.m_matrix.set_score(2,2, 3)
@@ -106,11 +112,33 @@ class TestAlignmentClasses(unittest.TestCase):
         # check by hand!
 
 
+
     def test_update_m(self):
         """
         Test AlignmentAlgorithm's update M
         """
         ### FILL IN ###
+        # configure alignment params
+        align_params = AlignmentParameters()
+        
+        # create an alignment object
+        align = Align("", "")
+        #do we need align.mm? when is MM made? 
+        mm = align_params.match_matrix("A","A")
+        mm.set_score("A","A",1)
+        align.align_params = align_params
+        align.m_matrix = ScoreMatrix("M", 5, 4)
+        align.m_matrix.set_score(2,2, 3.)
+        align.ix_matrix = ScoreMatrix("Ix", 5, 4)
+        align.m_matrix.set_score(2,2, 1.)
+        align.iy_matrix = ScoreMatrix("Iy", 5, 4)
+        align.m_matrix.set_score(2,2, 1.)
+
+        # run the method!
+        align.update_m(3, 3)
+
+        score = align.m_matrix.get_score(3,3)
+        self.assertEqual(score, 3)
         return
     
     def test_update_iy(self):
@@ -118,8 +146,34 @@ class TestAlignmentClasses(unittest.TestCase):
         Test AlignmentAlgorithm's update Iy
         """
         ### FILL IN ###
-        return
+         # configure alignment params
+        align_params = AlignmentParameters()
+        align_params.dx = 1
+        align_params.ex = 0.5
 
+        # create an alignment object
+        align = Align("", "")
+        align.align_params = align_params
+
+        align.m_matrix = ScoreMatrix("M", 5, 4)
+        align.ix_matrix = ScoreMatrix("Iy", 5, 4)
+        align.m_matrix.set_score(2,2, 3)
+        align.ix_matrix.set_score(2,2, 2.5)
+
+        # run the method!
+        align.update_iy(2, 3)
+
+        score = align.ix_matrix.get_score(3,2)
+        self.assertEqual(score, 2)
+
+        return
+    def check_score(self):
+        '''
+        check final score
+        '''
+        return None
+    
+    
     def test_traceback_start(self):
         """
         Tests that the traceback finds the correct start
@@ -127,6 +181,16 @@ class TestAlignmentClasses(unittest.TestCase):
         """
         return
 
-
+    def test_NodePath(self):
+        #do we need alignmentparameters to exist? 
+        align = Align("","")
+        nodepath = align.NodePath() 
+        nodepath.append((1,1))
+        self.assertEqual([[(1,1)]],nodepath.paths)
+        nodepath.branch()
+        self.assertEqual([[(1,1)],[(1,1)]],nodepath.paths)
+        
+    #def test_NodePath_duplicate(self):
+        
 if __name__=='__main__':
     unittest.main()

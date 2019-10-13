@@ -132,11 +132,14 @@ class ScoreMatrix(object):
         
         return pointer_list
 
-    def set_pointers(self, row, col,M_tuple,Ix_tuple,Iy_tuple): ### FILL IN - this needs additional arguments ###
+    def set_pointers(self, row, col,M,Ix,Iy): ### FILL IN - this needs additional arguments ###
         ### FILL IN ###
-        self.score_matrix[row][col].M_pointer.append(M_tuple)
-        self.score_matrix[row][col].Ix_pointer.append(Ix_tuple)
-        self.score_matrix[row][col].Iy_pointer.append(Iy_tuple)
+        if len(M)>0:
+            self.score_matrix[row][col].M_pointer.extend(M)
+        if len(Ix)>0:
+            self.score_matrix[row][col].Ix_pointer.extend(Ix)
+        if len(Iy)>0:
+            self.score_matrix[row][col].Iy_pointer.extend(Iy)
 
     def print_scores(self):
         """
