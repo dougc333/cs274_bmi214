@@ -18,3 +18,4 @@ avg_gap,avg_gap_len = align_quiz_functions.count_gaps("q5_output/quiz5_blosum62_
 print("blosum62 human chimp")
 avg_mis = align_quiz_functions.count_mismatches("q5_output/quiz5_blosum62_human_chimp.output")
 avg_gap,avg_gap_len = align_quiz_functions.count_gaps("q5_output/quiz5_blosum62_human_chimp.output")
+
