@@ -206,7 +206,7 @@ class AlignmentParameters(object):
         self.len_alphabet_a = 0
         self.len_alphabet_b = 0
         self.match_matrix = MatchMatrix(self.alphabet_a, self.alphabet_b, self.len_alphabet_a, self.len_alphabet_a)
-        self.score = 0
+    
 
     def load_params_from_file(self, input_file): 
         """
@@ -232,16 +232,17 @@ class AlignmentParameters(object):
         self.alphabet_a = lines[5] 
         self.len_alphabet_b = int(lines[6])
         self.alphabet_b = lines[7]
+        #print("num_lines:",len(lines))
         self.match_matrix = MatchMatrix(self.alphabet_a, self.alphabet_b, self.len_alphabet_a, self.len_alphabet_b)
         for x in range(8,len(lines)):
-            if(len(lines[x].strip())>0):
-                parse_input = lines[x].split()
-                row = parse_input[0] #row in match matrix from 1 not used for defined interface
-                col = parse_input[1] # col in match matrix from 1 not used for defined interface
-                firstAA = parse_input[2] 
-                secondAA = parse_input[3]
-                similarity = parse_input[4]
-                self.match_matrix.set_score(firstAA, secondAA, similarity)
+            #print(lines[x])
+            parse_input = lines[x].split()
+            row = parse_input[0] #row in match matrix from 1 not used for defined interface
+            col = parse_input[1] # col in match matrix from 1 not used for defined interface
+            firstAA = parse_input[2] 
+            secondAA = parse_input[3]
+            similarity = parse_input[4]
+            self.match_matrix.set_score(firstAA, secondAA, similarity)
 
 class Align(object):
     """
@@ -260,7 +261,6 @@ class Align(object):
         self.m_matrix=None
         self.ix_matrix=None
         self.iy_matrix=None
-        self.score = 0.0
 
     #we have to delay init till we load parameters in file because of align_test.py    
     def init_matrix(self):
@@ -293,10 +293,50 @@ class Align(object):
         #we dont specify seqa, only size of alphabet for testing update_ix, update_m, update_iy
         for i in range(0,len(self.align_params.seq_a)+1):
             for j in range(0,len(self.align_params.seq_b)+1):
-                self.update(i,j)   
-        #self.debug_print()
-                  
-    def debug_print(self):           
+                print("i j:",i,j)
+                if (i==0 or j==0):
+                    self.m_matrix.set_score(i,j,0.0)
+                    self.ix_matrix.set_score(i,j,0.0)
+                    self.iy_matrix.set_score(i,j,0.0)
+                elif(i!=0 and j!=0):
+                    print("i j",i,j,"seqa:",self.align_params.seq_a, "seqb:",self.align_params.seq_b)
+                    print("seq_a[i-1]",self.align_params.seq_a[i-1])
+                    print("seq_b[j-1]",self.align_params.seq_b[j-1])
+                    print(self.align_params.match_matrix.get_score(self.align_params.seq_a[i-1],self.align_params.seq_b[j-1]))
+                    
+                    
+                    firstM =  self.m_matrix.get_score(i-1,j-1) + (self.align_params.match_matrix.get_score(self.align_params.seq_a[i-1],self.align_params.seq_b[j-1]))
+                    secondM = self.ix_matrix.get_score(i-1,j-1) + (self.align_params.match_matrix.get_score(self.align_params.seq_a[i-1],self.align_params.seq_b[j-1]))
+                    thirdM =  self.iy_matrix.get_score(i-1,j-1) + (self.align_params.match_matrix.get_score(self.align_params.seq_a[i-1],self.align_params.seq_b[j-1]))
+                    maxM = max(firstM,secondM,thirdM)
+                    self.m_matrix.set_score(i,j, maxM)
+                    if firstM==maxM:
+                        self.m_matrix.M_pointer_add(i,j,(i-1,j-1))
+                    if(secondM==maxM):
+                        self.m_matrix.Ix_pointer_add(i,j,(i-1,j-1))
+                    if(thirdM==maxM):
+                        self.m_matrix.Iy_pointer_add(i,j,(i-1,j-1))
+
+                    firstIx = self.m_matrix.get_score(i-1,j) - self.align_params.dy
+                    secondIx = self.ix_matrix.get_score(i-1,j) - self.align_params.ey
+                    maxIx = max(firstIx,secondIx)
+                    self.ix_matrix.set_score(i,j, maxIx)
+                    
+                    if firstIx == maxIx:
+                        self.m_matrix.M_pointer_add(i,j,(i-1,j))
+                    if secondIx == maxIx:
+                        self.m_matrix.Iy_pointer_add(i,j,(i-1,j))
+
+                    firstIy = self.m_matrix.get_score(i,j-1) - self.align_params.dx
+                    secondIy = self.iy_matrix.get_score(i,j-1) - self.align_params.ex
+                    maxIy = max(firstIy,secondIy)
+                    self.iy_matrix.set_score(i,j, maxIy)
+                    if firstIy == maxIy:
+                        self.m_matrix.M_pointer_add(i,j,(i,j-1))
+                    if secondIy == maxIy:
+                        self.m_matrix.Iy_pointer_add(i,j,(i,j-1))
+                else:
+                    print("should not see this")
         print("----------------")
         self.m_matrix.print_scores()
         print("----------------")
@@ -331,48 +371,27 @@ class Align(object):
         
     def update_m(self, row, col):
         ### FILL IN ###
-        if (row==0 and col==0):
-            self.m_matrix.set_score(row,col,0.0)
-        elif(row!=0 and col!=0):
-            firstM =  self.m_matrix.get_score(row-1,col-1) + (self.align_params.match_matrix.get_score(self.align_params.seq_a[row-1],self.align_params.seq_b[col-1]))
-            secondM = self.ix_matrix.get_score(row-1,col-1) + (self.align_params.match_matrix.get_score(self.align_params.seq_a[row-1],self.align_params.seq_b[col-1]))
-            thirdM =  self.iy_matrix.get_score(row-1,col-1) + (self.align_params.match_matrix.get_score(self.align_params.seq_a[row-1],self.align_params.seq_b[col-1]))
-            maxM = max(firstM,secondM,thirdM)
-            self.m_matrix.set_score(row,col, maxM)
-            if firstM==maxM:
-                self.m_matrix.M_pointer_add(row,col,(row-1,col-1))
-            if(secondM==maxM):
-                self.m_matrix.Ix_pointer_add(row,col,(row-1,col-1))
-            if(thirdM==maxM):
-                self.m_matrix.Iy_pointer_add(row,col,(row-1,col-1))
+        self.m_matrix.set_score(row,col, max(
+            self.m_matrix.get_score(row-1,col-1) + 
+            self.align_params.match_matrix.get_score(self.align_params.seq_a[row-1],self.align_params.seq_b[col-1]),
+            self.ix_matrix.get_score(row-1,col-1) + 
+            self.align_params.match_matrix.get_score(self.align_params.seq_a[row-1],self.align_params.seq_b[col-1]),
+            self.iy_matrix.get_score(row-1,col-1) + 
+            self.align_params.match_matrix.get_score(self.align_params.seq_a[row-1],self.align_params.seq_b[col-1])
+        ))
+        #set the pointers can do here or have to wait until updated? Need other values for pointers
 
-       
     def update_ix(self, row, col):
-        if (row==0 and col==0):
-            self.ix_matrix.set_score(row,col,0.0)
-        elif(row!=0 and col!=0):
-            firstIx = self.m_matrix.get_score(row-1,col) - self.align_params.dy
-            secondIx = self.ix_matrix.get_score(row-1,col) - self.align_params.ey
-            maxIx = max(firstIx,secondIx)
-            self.ix_matrix.set_score(row,col, maxIx)
-            if firstIx == maxIx:
-                self.m_matrix.M_pointer_add(row,col,(row-1,col))
-            if secondIx == maxIx:
-                self.m_matrix.Iy_pointer_add(row,col,(row-1,col))
+        self.ix_matrix.set_score(row,col, max(
+        self.m_matrix.get_score(row-1,col) - self.align_params.dy,
+        self.ix_matrix.get_score(row-1,col) - self.align_params.ey
+        ))
 
     def update_iy(self, row, col):        
-        if (row==0 and col==0):
-            self.iy_matrix.set_score(row,col,0.0)
-        elif(row!=0 and col!=0):
-            firstIy = self.m_matrix.get_score(row,col-1) - self.align_params.dx
-            secondIy = self.iy_matrix.get_score(row,col-1) - self.align_params.ex
-            maxIy = max(firstIy,secondIy)
-            self.iy_matrix.set_score(row,col, maxIy)
-            if firstIy == maxIy:
-                self.m_matrix.M_pointer_add(row,col,(row,col-1))
-            if secondIy == maxIy:
-                self.m_matrix.Iy_pointer_add(row,col,(row,col-1))   
-
+        self.iy_matrix.set_score(row,col, max(
+        self.m_matrix.get_score(row,col-1) - self.align_params.dx,
+        self.iy_matrix.get_score(row,col-1) - self.align_params.ex
+        ))
 
     def find_traceback_start(self):
         """
@@ -424,17 +443,7 @@ class Align(object):
         print("node_path:",node_path)
 
     def write_output(self):
-        fh = open(self.output_file,"w")
-        fh.write(str(self.score))
-        fh.write("\n")
-        fh.write("\n")
-        fh.write("AATG_C\n")
-        fh.write("A__GGC\n")
-        fh.write("\n")
-        fh.write("ATG_C\n")
-        fh.write("A_GGC\n")
-        fh.write("\n")
-        fh.close()
+        ### FILL IN ###
         return None
 
 
@@ -475,8 +484,7 @@ def main():
     
     # create an align object and run
     align = Align(input_file, output_file)
-    align.align()
-    align.write_output()    
+    align.align()    
     #align.traceback()
 
 if __name__=="__main__":
