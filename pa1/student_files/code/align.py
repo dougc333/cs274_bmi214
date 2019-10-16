@@ -429,13 +429,20 @@ class Align(object):
         node because it requires you to be in all 3 matrices which is physically
         impossible but this is defintion of termination condition on the graph.  
         '''
-        print("branch2 node1:",node1,"branch2 node2:",node2,"branch2 node3:",node3)
+        
+        print("branch2 last_node:",last_node,"branch2 node1:",node1,"branch2 node2:",node2,"branch2 node3:",node3)
+        remove_index=0
         for idx in range(0,len(self.paths)):
-            #print("branch testing last node:",self.paths[idx][-1])
+            print("branch2 paths:",self.paths[idx])
+            print(len(self.paths),idx)
             if (self.paths[idx][-1]==last_node):
+                remove_index=idx
+                print("found!!!",idx)
                 #remove this path from self.paths to print out
-                self.final_path.append(self.paths[idx])
-                self.paths.remove(self.paths[idx])
+        print("remove_index:",remove_index)
+        self.paths[remove_index].append([node1[0],node2[1],node3[2]])
+        self.final_path.append(self.paths[remove_index])
+        self.paths.remove(self.paths[remove_index])
 
 
     def addM(self,tupl):
@@ -467,6 +474,11 @@ class Align(object):
         for idx in range(0,len(self.paths)):
             print(self.paths[idx])
     
+    def print_final(self):
+        print("num_paths:",len(self.final_path))
+        for idx in range(0,len(self.final_path)):
+            print(self.final_path[idx])
+
     def traceback(self): ### FILL IN additional arguments ###
         """
         Performs a traceback.
@@ -575,13 +587,13 @@ class Align(object):
                     if (1 in num_top):
                         node.append(top)
                     if (1 in num_left):
-                        node.append(num_left)
+                        node.append(left)
                     #print("before branch2 self.paths:")
-                    #how to append?
-                    self.branch2(n,node[0],node[1],node[2])
-                    #do nothing add code for branch3 case
-                    print("after branch 2 nodes self.paths:")
+                    self.branch2(n,diag,top,left)
+                    print("after branch2 self.paths:")
                     self.print_paths()
+                    print("after branch2 self.final_paths")
+                    self.print_final()
                 else:
                     print("should not see this if len flatten - tie")
             num_iter+=1
