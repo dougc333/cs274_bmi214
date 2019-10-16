@@ -25,30 +25,31 @@ from align import *
 TEST_INPUT_FILE="test_example.input"
 
 class TestAlignmentClasses(unittest.TestCase):
-    self.m = []
-    self.m.append([0.,0.,0.,0.,0.])
-    self.m.append([0.,1.0,0.,0.,0.])
-    self.m.append([0.,1.0,1.0,0.9,0.4])
-    self.m.append([0.,0.,1.0,1.0,0.9])
-    self.m.append([0.,0.,1.4,2.0,1.0])
-    self.m.append([0.,-1.0.,-0.2,1.1,3.0])
+    def init():
+        self.m = []
+        self.m.append([0.,0.,0.,0.,0.])
+        self.m.append([0.,1.0,0.,0.,0.])
+        self.m.append([0.,1.0,1.0,0.9,0.4])
+        self.m.append([0.,0.,1.0,1.0,0.9])
+        self.m.append([0.,0.,1.4,2.0,1.0])
+        self.m.append([0.,-1.0,-0.2,1.1,3.0])
 
-    self.ix = []
-    self.ix.append([0.,0.,0.,0.,0.])
-    self.ix.append([0.,-0.3,-0.3,-0.3,-0.3])
-    self.ix.append([0.,0.4,-0.6,-0.6,-0.6])
-    self.ix.append([0.,0.4,0.4,0.3,-0.2])
-    self.ix.append([0.1,0.4,0.4,1.4,0.3])
-    self.ix.append([0.,-0.2,0.9,1.4,0.4])
+        self.ix = []
+        self.ix.append([0.,0.,0.,0.,0.])
+        self.ix.append([0.,-0.3,-0.3,-0.3,-0.3])
+        self.ix.append([0.,0.4,-0.6,-0.6,-0.6])
+        self.ix.append([0.,0.4,0.4,0.3,-0.2])
+        self.ix.append([0.1,0.4,0.4,1.4,0.3])
+        self.ix.append([0.,-0.2,0.9,1.4,0.4])
 
-    self.iy = []
-    self.iy.append([0.,-0.1,0.,0.,0.])
-    self.iy.append([0.,-0.1,0.9,0.4,-0.1])
-    self.iy.append([0.,-0.1,0.9,0.9,0.8])
-    self.iy.append([0.,-0.1,-0.1,0.9,0.9])
-    self.iy.append([0.,-0.1,-0.1,1.3,1.9])
-    self.iy.append([0.,-0.1,-0.6,-0.3,1.0])
-    
+        self.iy = []
+        self.iy.append([0.,-0.1,0.,0.,0.])
+        self.iy.append([0.,-0.1,0.9,0.4,-0.1])
+        self.iy.append([0.,-0.1,0.9,0.9,0.8])
+        self.iy.append([0.,-0.1,-0.1,0.9,0.9])
+        self.iy.append([0.,-0.1,-0.1,1.3,1.9])
+        self.iy.append([0.,-0.1,-0.6,-0.3,1.0])
+
     def test_match_matrix(self):
         """
         Tests match matrix object
@@ -76,8 +77,8 @@ class TestAlignmentClasses(unittest.TestCase):
         """
         ### FILL IN ###
         M = ScoreMatrix("M",2,2)
-        M.set_pointers(1,1,"M(0,0)")
-        self.assertEqual(M.get_pointers(1,1),["M(0,0)"])
+        M.set_pointers(1,1,(0,0),[],[]) #use [] for nothing
+        self.assertEqual(M.get_pointers(1,1),[[(0,0)],[[]],[[]]])
 
         
     
@@ -185,12 +186,34 @@ class TestAlignmentClasses(unittest.TestCase):
         #this is equal also, M and Iy. Not sure what convention is
         
     
-    def init_matrix(self):
+    def test_branch(self):
+        return
 
-
-    def get_traceback_start(self):
-
-
+    def test_traceback_start(self):
+        """
+        Tests that the traceback finds the correct start
+        Should test local and global alignment!
+        """
+        align_params = AlignmentParameters()
+        align = Align("", "")
+        align.align_params = align_params
+        align_params.global_alignment=True
+        align.m_matrix = ScoreMatrix("M", 5, 4)
+        print("m_matrix:",align.m_matrix.nrow,align.m_matrix.ncol)
+        #careful m_matrix has dims nrow,ncol, max value is nrow-1,ncol-1 bc they mixed conventions 
+        #they start 1 indexing on seq_a and seb_b. Sigh. 
+        align.m_matrix.set_score(4,3, 3)
+        start = align.find_traceback_start()
+        print(start)
+        self.assertEqual(align.find_traceback_start(), (4,3))
+    
+    def test_last_nodes(self):
+        #align_params = AlignmentParameters()
+        align = Align("", "")
+        #align.align_params = align_params
+        align.paths=[[[[(5, 4)], [], []], [[], [], [(4, 3)]]], [[[(5, 4)], [], []], [[(4, 3)], [], []]]]
+        align.last_nodes()
+        print( align.last_nodes())
     '''
     def check_score(self):
         """
@@ -198,15 +221,6 @@ class TestAlignmentClasses(unittest.TestCase):
         """
         #the problem is teh left corner can be a gap? then the score is 0? 
         return None
-    
-    
-    def test_traceback_start(self):
-        """
-        Tests that the traceback finds the correct start
-        Should test local and global alignment!
-        """
-
-        return
     
     def test_NodePath(self):
         #do we need alignmentparameters to exist? 

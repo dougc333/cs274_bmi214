@@ -71,24 +71,11 @@ class Node:
   def __init__(self,x,y):
     self.x = x
     self.y = y
-    self.east=None
-    self.se=None
-    self.south=None
     self.weight = 0.
     self.M_pointer = []
     self.Ix_pointer = []
     self.Iy_pointer = []
-    self.pointers = []
-
-  def set_weights(self,east, se, south):
-    self.east = east
-    self.se = se
-    self.south = south
-
-  def node_print():
-    print("node_print:",self.x, self.y, self.east, self.se, self.south. self.weight)
-    print("pointers:",pointers)
-
+    #self.pointers = []
 
 class ScoreMatrix(object):
     """
@@ -100,8 +87,8 @@ class ScoreMatrix(object):
         self.name = name # identifier for the score matrix - Ix, Iy, or M
         self.nrow = nrow
         self.ncol = ncol
+        #this is wrong? off by one? because they start at 1 when counting len(alphabet_a)
         self.score_matrix =[[Node(i,j) for i in range(0,ncol)] for j in range(0,nrow)]
-        self.pointer_list = [] #for traceback path only not for forward pointer storage!
         
         # FILL IN 
         # you need to figure out a way to represent this and how to initialize
@@ -116,7 +103,7 @@ class ScoreMatrix(object):
         self.score_matrix[row][col].Ix_pointer.append(tupl)
 
     def getIx_pointer(self,row,col):
-        return self.score_matrix[row][col].Iy_pointer
+        return self.score_matrix[row][col].Ix_pointer
 
     def Iy_pointer_add(self,row,col,tupl):
         self.score_matrix[row][col].Iy_pointer.append(tupl)
@@ -138,14 +125,16 @@ class ScoreMatrix(object):
          ex. [(1,1), (1,0)]
         """
         ### FILL IN ###
+        #needs to be flattened?
+        #print("asdf",self.getM_pointer(row,col),self.getIx_pointer(row,col), self.getIy_pointer(row,col))
         return [self.getM_pointer(row,col), self.getIx_pointer(row,col), self.getIy_pointer(row,col)]
 
     def set_pointers(self, row, col,M_tupl, Ix_tupl, Iy_tupl): 
         ### FILL IN - this needs additional arguments ###
         ### FILL IN ###
-        self.score_matrix[row][col].M_pointer_add(row,col,M_tupl)
-        self.score_matrix[row][col].Ix_pointer_add(row,col,Ix_tupl)
-        self.score_matrix[row][col].Iy_pointer_add(row,col,Iy_tupl)
+        self.M_pointer_add(row,col,M_tupl)
+        self.Ix_pointer_add(row,col,Ix_tupl)
+        self.Iy_pointer_add(row,col,Iy_tupl)
 
     def print_scores(self):
         """
@@ -161,12 +150,7 @@ class ScoreMatrix(object):
             0.0, 0.0, 1.0, 2.0, 3.0
 
         """
-        ### FILL IN ###
-        #add node property printout
-        #for i in range(0,self.nrow):
-        #    for j in range(0,self.ncol):
-        #        print("i j",i,j,self.score_matrix[i][j].weight)
-         
+        ### FILL IN ###  
         print(self.name+" = ")
         for row in self.score_matrix:
             print(" ".join([str(x.weight) for x in row]))
@@ -174,21 +158,24 @@ class ScoreMatrix(object):
     
     def print_pointers_old(self):
         """
-        Returns a nicely formatted string containing the pointers for each entry in the score matrix. Use this for debugging!
+        debugging!
         """
         for i in range(0,self.nrow):
             for j in range(0,self.ncol):
                 print("i j",i,j,self.score_matrix[i][j].pointers)
 
     def print_pointers(self):
+        #convention for printing matrix
         print("pointers:",self.name)
         for i in range(1,self.nrow):
             for j in range(1,self.ncol):
                 #merge all 3 into a list to remove empty list
+                #print(i,j,["M"+str(x) for x in self.getM_pointer(i,j)],
+                #["Ix"+str(x) for x in self.getIx_pointer(i,j)],
+                #["Iy"+str(x) for x in self.getIy_pointer(i,j)])
                 print(i,j,["M"+str(x) for x in self.score_matrix[i][j].M_pointer],
                 ["Ix"+str(x) for x in self.score_matrix[i][j].Ix_pointer],
                 ["Iy"+str(x) for x in self.score_matrix[i][j].Iy_pointer])
-                
                 
 
 class AlignmentParameters(object):
@@ -210,7 +197,7 @@ class AlignmentParameters(object):
         self.len_alphabet_a = 0
         self.len_alphabet_b = 0
         self.match_matrix = MatchMatrix(self.alphabet_a, self.alphabet_b, self.len_alphabet_a, self.len_alphabet_a)
-        self.score = 0
+        
 
     def load_params_from_file(self, input_file): 
         """
@@ -261,12 +248,17 @@ class Align(object):
         self.input_file = input_file
         self.output_file = output_file
         self.align_params = AlignmentParameters()
-        self.m_matrix=None
-        self.ix_matrix=None
-        self.iy_matrix=None
+        self.m_matrix = None
+        self.ix_matrix = None
+        self.iy_matrix = None
         self.score = 0.0
+        self.final_path=[]
+        #node = [[(4,5)],[],[]] becuse we need a notation for an empty tuple 
+        #path=[[node1],[node2],[node3]]
+        #paths = [[path],[path] = [ [[node1],[node2],[node3]], [[node1],[node2],[node3]] ]
+        self.paths=[[]] #blue = node, pink=path, yellow=paths
 
-    #we have to delay init till we load parameters in file because of align_test.py    
+    #we have to delay init till we load parameters in file because of align_test.py  
     def init_matrix(self):
         self.m_matrix = ScoreMatrix("M",len(self.align_params.seq_a)+1, len(self.align_params.seq_b)+1)
         self.ix_matrix = ScoreMatrix("Ix",len(self.align_params.seq_a)+1, len(self.align_params.seq_b)+1)
@@ -282,9 +274,9 @@ class Align(object):
         self.init_matrix()
         # populate the score matrices based on the input parameters
         self.populate_score_matrices()
-        #self.traceback()
+        self.traceback()
         #self.write_output()
-        # perform a traceback and write the output to an output file
+        
         ### FILL IN ###
     
     def populate_score_matrices(self):
@@ -392,7 +384,9 @@ class Align(object):
         """
         ### FILL IN ###
         if self.align_params.global_alignment==1:
-            return (self.m_matrix.nrow, self.m_matrix.ncol)
+            self.score = self.m_matrix.get_score(self.m_matrix.nrow-1,self.m_matrix.ncol-1)
+            #print("setting score:",self.score)
+            return (self.m_matrix.nrow-1, self.m_matrix.ncol-1)
         else:
             print("there can be only 1 local max? NO")
             maxM = max([max(x)  for x in self.m_matrix.score_matrix])
@@ -402,7 +396,77 @@ class Align(object):
             max_loc =[(ix,iy) for ix, row in enumerate(a) for iy, i in enumerate(row) if i == 0]
             print("max_loc:",max_loc)
             return max_loc
+    def str_to_tuple(self,st):
+        if st[0]=="M":
+            return()
+        else:
+            #Ix or Iy
+            return
 
+    def add_one(self,last_node, node):
+        #print("add_one last_node:",last_node)
+        #print("add_one node",node)
+        for idx in range(0,len(self.paths)):
+            #print("add_one testing last node:",self.paths[idx][-1])
+            if (self.paths[idx][-1]==last_node):
+                #print("adding!!!!")
+                self.paths[idx].append(node)
+            
+    def branch(self,last_node,node1,node2):
+        print("branch node1:",node1,"branch node2:",node2)
+        for idx in range(0,len(self.paths)):
+            #print("branch testing last node:",self.paths[idx][-1])
+            if (self.paths[idx][-1]==last_node):
+                #print("adding!!!!")
+                dup = copy.deepcopy(self.paths[idx]) #copies path
+                dup.append(node1)
+                self.paths[idx].append(node2)
+                self.paths.append(dup)
+
+    def branch2(self,last_node,node1,node2,node3):
+        '''
+        termination of path, add the final node with M,Ix,Iy set. This is an invalid
+        node because it requires you to be in all 3 matrices which is physically
+        impossible but this is defintion of termination condition on the graph.  
+        '''
+        print("branch2 node1:",node1,"branch2 node2:",node2,"branch2 node3:",node3)
+        for idx in range(0,len(self.paths)):
+            #print("branch testing last node:",self.paths[idx][-1])
+            if (self.paths[idx][-1]==last_node):
+                #remove this path from self.paths to print out
+                self.final_path.append(self.paths[idx])
+                self.paths.remove(self.paths[idx])
+
+
+    def addM(self,tupl):
+        node = [[tupl],[],[]]
+        for x in range(0,len(self.paths)):
+            self.paths[x].append(node)
+    def addIx(self,tupl):
+        node = [[],[tupl],[]]
+        for x in range(0,len(self.paths)):
+            self.paths.append(node)
+    def addIy(self,tupl):
+        node = [[],[],[tupl]]
+        for x in range(0,len(self.paths)):
+            self.paths.append(node)
+    def last_nodes(self):
+        '''
+        returns last node tuples for next iteration in score matrix till end of path
+        '''
+        nodes=[]
+        for idx in range(0,len(self.paths)):
+            #print("path:",self.paths[idx])
+            last_node =self.paths[idx][-1]
+            #print("last_node:",last_node)
+            nodes.append(last_node)
+        return nodes
+
+    def print_paths(self):
+        print("num_paths:",len(self.paths))
+        for idx in range(0,len(self.paths)):
+            print(self.paths[idx])
+    
     def traceback(self): ### FILL IN additional arguments ###
         """
         Performs a traceback.
@@ -414,18 +478,116 @@ class Align(object):
         print("traceback_start:",start)
         i = start[0]
         j = start[1]
-        node_path=NodePath()
-        node_path.append([(i,j)])
-        current=0 #0=M, 1=Ix, 2=Iy
-        while(i>0 and j>0):
-            print("backtrack i j:",i,j)
-            if(i>0 and j>0):
-                M = self.m_matrix.getM_pointer(i,j)
-                Ix = self.m_matrix.getIx_pointer(i,j)
-                Iy = self.m_matrix.getIy_pointer(i,j)                
-            else:
-                print("backtrach origin i j",i,j)
-        print("node_path:",node_path)
+        
+        #print("self.paths before adding start:",self.paths)
+        self.addM(start)
+        #print("self.paths after adding start node",self.paths)
+        #each node [[path] [path] [path]]=[[M] [Ix] [Iy]]
+        #print( "m_M_pointer",self.m_matrix.getM_pointer(i,j),"m_Ix_pointer:",self.m_matrix.getIx_pointer(i,j),"m_Iy_pointer:",self.m_matrix.getIy_pointer(i,j))
+        #print("getpointers:",self.m_matrix.get_pointers(i,j))
+
+        num_iter=0
+        while(len(self.paths)>0 and num_iter<8):
+            print("start loop self.path:")
+            self.print_paths()
+            last_nodes = self.last_nodes()
+            print("num_iter:",num_iter,"i j",i,j,"last_nodes:",last_nodes)
+            
+            for n in last_nodes:
+                #use n[0],n[1],n[2] to figure out if tis is M,Ix or Iy
+                print("last node:",n,"len n[0],n[1],n[2]",len(n[0]),len(n[1]),len(n[2]))
+                l=[]
+                if len(n[0])==1:
+                    print("lookup M")
+                    i,j = n[0][0]
+                    diag = [self.m_matrix.get_pointers(i,j)[0],[],[]] #M
+                    top = [[],self.m_matrix.get_pointers(i,j)[1],[]] #ix
+                    left = [[],[],self.m_matrix.get_pointers(i,j)[2]] #iy
+                    l.extend(diag)
+                    l.extend(top)
+                    l.extend(left)
+                elif(len(n[1])==1):
+                    print("lookup Ix")
+                    i,j = n[1][0]
+                    diag = [self.ix_matrix.get_pointers(i,j)[0],[],[]] #M
+                    top = [[],self.ix_matrix.get_pointers(i,j)[1],[]] #ix
+                    #left = [[],[],self.m_matrix.get_pointers(i,j)[2]] #iy
+                    print("lookup Ix diag:",diag," top:",top)
+                    l.extend(diag)
+                    l.extend(top)
+                    #l.extend(left)
+                elif(len(n[2])==1):
+                    print("lookup Iy")
+                    i,j = n[2][0]
+                    diag = [self.iy_matrix.get_pointers(i,j)[0],[],[]] #M
+                    #top = [[],self.m_matrix.get_pointers(i,j)[1],[]] #ix
+                    left = [[],[],self.iy_matrix.get_pointers(i,j)[2]] #iy
+                    l.extend(diag)
+                    #l.extend(top)
+                    l.extend(left)
+                    print("lookupIy diag:",diag," left:",left)
+                else:
+                    print("*******should not see this*********")
+                flatten = [x for x in l if len(x)>0]
+                num_diag = [len(x) for x in diag]
+                num_top = [len(x) for x in top]
+                num_left = [len(x) for x in left]
+                print("diag:",diag," top:",top," left",left," flatten:",flatten,"len(flatten):",len(flatten))
+                print("num_diag,num_top,num_left",num_diag,num_top,num_left)            
+                #if more than one have to branch
+                if (len(flatten))==0:
+                    print("len(flatten) =0")
+                    #done or error
+                    print("nothing")
+                elif(len(flatten))==1:
+                    #append single flatten list and append once
+                    print("len(flatten)=1")
+                    single_node = []
+                    if (1 in num_diag):
+                        single_node.append(diag)
+                    if (1 in num_top):
+                        single_node.append(top)
+                    if (1 in num_left):
+                        single_node.append(left)
+                    self.add_one(n,single_node[0])
+                    print("after 1 add path:")
+                    self.print_paths()
+                elif (len(flatten)==2 ):
+                    #branch multiple entries need to branch and add separate tuple to each one. flatten, branch
+                    #to number of tuples and remove tuple and add to path list
+                    print("branch len(flatten)==2")
+                    two_nodes=[]
+                    if (1 in num_diag):
+                        two_nodes.append(diag)
+                    if (1 in num_top):
+                        two_nodes.append(top)
+                    if (1 in num_left):
+                        two_nodes.append(left)
+                    print("len==2 two_nodes:",two_nodes)
+                    self.branch(n,two_nodes[0],two_nodes[1])
+                    print("after branch self.paths:")
+                    self.print_paths()
+                elif(len(flatten)==3):
+                    #termination condition
+                    node=[]
+                    if (1 in num_diag):
+                        node.append(diag)
+                    if (1 in num_top):
+                        node.append(top)
+                    if (1 in num_left):
+                        node.append(num_left)
+                    #print("before branch2 self.paths:")
+                    #how to append?
+                    self.branch2(n,node[0],node[1],node[2])
+                    #do nothing add code for branch3 case
+                    print("after branch 2 nodes self.paths:")
+                    self.print_paths()
+                else:
+                    print("should not see this if len flatten - tie")
+            num_iter+=1
+            #remove complete paths
+            #self.remove_paths()
+        print("after while loop self.paths:",num_iter)
 
     def write_output(self):
         fh = open(self.output_file,"w")
@@ -440,32 +602,6 @@ class Align(object):
         fh.write("\n")
         fh.close()
         return None
-
-
-class NodePath:
-    def __init__(self):
-        '''
-        paths contain all the paths
-        '''
-        self.paths = [[]]
-    
-    def branch(self):
-        dup = []
-        print("before dup:",len(self.paths))
-        for x in self.paths:
-            copy_me = copy.deepcopy(x)
-            dup.append(copy_me)
-        for x in dup:
-            self.paths.append(x)
-        print("after dup:",len(self.paths))
-    def append(self, node_tuple):
-        '''
-        append single node to self.path
-        '''
-        for x in self.paths:
-            x.append(node_tuple)
-
-
 
 def main():
     # check that the file is being properly used
