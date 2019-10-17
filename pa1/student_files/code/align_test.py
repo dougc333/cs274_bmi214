@@ -25,6 +25,7 @@ from align import *
 TEST_INPUT_FILE="test_example.input"
 
 class TestAlignmentClasses(unittest.TestCase):
+    '''
     def init():
         self.m = []
         self.m.append([0.,0.,0.,0.,0.])
@@ -49,7 +50,8 @@ class TestAlignmentClasses(unittest.TestCase):
         self.iy.append([0.,-0.1,-0.1,0.9,0.9])
         self.iy.append([0.,-0.1,-0.1,1.3,1.9])
         self.iy.append([0.,-0.1,-0.6,-0.3,1.0])
-
+    '''
+    
     def test_match_matrix(self):
         """
         Tests match matrix object

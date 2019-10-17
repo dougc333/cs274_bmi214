@@ -9,7 +9,7 @@ Note - you do not need to follow this set up! It is just a suggestion, and may h
 
 
 Usage: python align.py input_file output_file
-
+round(3e-74,3)
 """
 
 
@@ -154,8 +154,23 @@ class ScoreMatrix(object):
         print(self.name+" = ")
         for row in self.score_matrix:
             print(" ".join([str(x.weight) for x in row]))
-
+    import csv
+    def write_scores(self,file_name):
+        with open(file_name,'w',newline='\n') as fh:
+            for row in self.score_matrix:
+                fh.write(",".join([str(x.weight)[0:4] for x in row]))
+                fh.write("\n")
     
+    def get_max(self):
+        max = -float("inf")
+        tuple_loc = None
+        for i in range(0,self.nrow):
+            for j in range(0,self.ncol):
+                if self.score_matrix[i][j].weight > max:
+                    max = self.score_matrix[i][j].weight
+                    tuple_loc=(i,j)
+        return max,tuple_loc
+
     def print_pointers_old(self):
         """
         debugging!
@@ -275,6 +290,7 @@ class Align(object):
         # populate the score matrices based on the input parameters
         self.populate_score_matrices()
         self.traceback()
+        #move to main for online grading
         #self.write_output()
         
         ### FILL IN ###
@@ -290,8 +306,10 @@ class Align(object):
         for i in range(0,len(self.align_params.seq_a)+1):
             for j in range(0,len(self.align_params.seq_b)+1):
                 self.update(i,j)   
-        self.debug_print()
-                  
+        #self.debug_print()
+        self.m_matrix.write_scores("m.csv")
+        self.ix_matrix.write_scores("ix.csv")
+        self.iy_matrix.write_scores("iy.csv")       
     def debug_print(self):           
         print("----------------")
         self.m_matrix.print_scores()
@@ -305,6 +323,7 @@ class Align(object):
         self.ix_matrix.print_pointers()
         self.iy_matrix.print_pointers()
         print("-------------------------")
+    
     def update(self, row, col):
         """
         Method to update the matrices at a given row and column index.
@@ -326,19 +345,26 @@ class Align(object):
             secondM = self.ix_matrix.get_score(row-1,col-1) + (self.align_params.match_matrix.get_score(self.align_params.seq_a[row-1],self.align_params.seq_b[col-1]))
             thirdM =  self.iy_matrix.get_score(row-1,col-1) + (self.align_params.match_matrix.get_score(self.align_params.seq_a[row-1],self.align_params.seq_b[col-1]))
             maxM = max(firstM,secondM,thirdM)
-            print("update_m:",row,col,firstM,secondM,thirdM,maxM)
+            #print("update_m:",row,col,firstM,secondM,thirdM,maxM)
             self.m_matrix.set_score(row,col, maxM)
+            #local
+            if self.align_params.global_alignment==False:
+                if self.m_matrix.get_score(row,col) < 0.:
+                    self.m_matrix.set_score(row,col,0.) 
+            #set pointers       
             if fuzzy_equals(firstM,maxM):
-                print("update_m m_M pointer update:",row-1,col-1)
+                #print("update_m m_M pointer update:",row-1,col-1)
+                #where is the pointer? huh? 
                 self.m_matrix.M_pointer_add(row,col,(row-1,col-1))
             if fuzzy_equals(secondM,maxM):
-                print("update_m ix_Ix pointer update:",row-1,col-1)
+                #print("update_m ix_Ix pointer update:",row-1,col-1)
                 self.m_matrix.Ix_pointer_add(row,col,(row-1,col-1))
             if fuzzy_equals(thirdM,maxM):
-                print("update_m iy_Iy pointer update:",row-1,col-1)
+                #print("update_m iy_Iy pointer update:",row-1,col-1)
                 self.m_matrix.Iy_pointer_add(row,col,(row-1,col-1))
-
-       
+                
+                
+                    
     def update_ix(self, row, col):
         if (row==0 and col==0):
             self.ix_matrix.set_score(row,col,0.0)
@@ -346,13 +372,18 @@ class Align(object):
             firstIx = self.m_matrix.get_score(row-1,col) - self.align_params.dy
             secondIx = self.ix_matrix.get_score(row-1,col) - self.align_params.ey
             maxIx = max(firstIx,secondIx)
-            print("update_ix:",row,col,firstIx,secondIx,maxIx)
+            #print("update_ix:",row,col,firstIx,secondIx,maxIx)
             self.ix_matrix.set_score(row,col, maxIx)
+            #local 
+            if self.align_params.global_alignment==False:
+                if self.ix_matrix.get_score(row,col) < 0.:
+                    self.ix_matrix.set_score(row,col,0.) 
+            #set pointers
             if fuzzy_equals(firstIx,maxIx):
-                print("update_ix ix_M pointer update:",row-1,col)
+                #print("update_ix ix_M pointer update:",row-1,col)
                 self.ix_matrix.M_pointer_add(row,col,(row-1,col))
             if fuzzy_equals(secondIx,maxIx):
-                print("update_ix ix_Iy pointer update:",row-1,col)
+                #print("update_ix ix_Iy pointer update:",row-1,col)
                 self.ix_matrix.Ix_pointer_add(row,col,(row-1,col))
 
     def update_iy(self, row, col):        
@@ -362,13 +393,18 @@ class Align(object):
             firstIy = self.m_matrix.get_score(row,col-1) - self.align_params.dx
             secondIy = self.iy_matrix.get_score(row,col-1) - self.align_params.ex
             maxIy = max(firstIy,secondIy)
-            print("update_iy:",row,col,firstIy,secondIy,maxIy)
+            #print("update_iy:",row,col,firstIy,secondIy,maxIy)
             self.iy_matrix.set_score(row,col, maxIy)
+            #local
+            if self.align_params.global_alignment==False:
+                if self.iy_matrix.get_score(row,col) < 0.:
+                    self.iy_matrix.set_score(row,col,0.) 
+            #set pointers
             if fuzzy_equals(firstIy,maxIy):
-                print("update_iy iy_M pointer update:",row,col-1)
+                #print("update_iy iy_M pointer update:",row,col-1)
                 self.iy_matrix.M_pointer_add(row,col,(row,col-1))
             if fuzzy_equals(secondIy,maxIy):
-                print("update_iy iy_Iy pointer update:",row,col-1)
+                #print("update_iy iy_Iy pointer update:",row,col-1)
                 self.iy_matrix.Iy_pointer_add(row,col,(row,col-1))   
 
 
@@ -383,19 +419,28 @@ class Align(object):
              (ex. [(1,2), (3,4)])
         """
         ### FILL IN ###
-        if self.align_params.global_alignment==1:
-            self.score = self.m_matrix.get_score(self.m_matrix.nrow-1,self.m_matrix.ncol-1)
-            #print("setting score:",self.score)
+        if self.align_params.global_alignment==True:
+            M_score = self.m_matrix.get_score(self.m_matrix.nrow-1,self.m_matrix.ncol-1)
+            Ix_score = self.ix_matrix.get_score(self.m_matrix.nrow-1,self.m_matrix.ncol-1)
+            Iy_score = self.m_matrix.get_score(self.m_matrix.nrow-1,self.m_matrix.ncol-1)
+            self.score = round(max(M_score,Ix_score,Iy_score),2)
+
+            #print("*****M score:",M_score)
+            #print("*****Ix score:",Ix_score)
+            #print("*****Iy score:",Iy_score)
+            #print("*****self.score:",self.score)
+            
             return (self.m_matrix.nrow-1, self.m_matrix.ncol-1)
         else:
-            print("there can be only 1 local max? NO")
-            maxM = max([max(x)  for x in self.m_matrix.score_matrix])
-            maxIx = max([max(x)  for x in self.ix_matrix.score_matrix])
-            maxIy = max([max(x)  for x in self.iy_matrix.score_matrix])
-            max_all=max(maxM, maxIx, maxIy)
-            max_loc =[(ix,iy) for ix, row in enumerate(a) for iy, i in enumerate(row) if i == 0]
-            print("max_loc:",max_loc)
-            return max_loc
+            maxM,M_loc = self.m_matrix.get_max()
+            maxIx,Ix_loc = self.ix_matrix.get_max()
+            maxIy,Iy_loc = self.iy_matrix.get_max()
+            
+            max_all= max(maxM, maxIx, maxIy)
+            
+            self.score = max_all
+
+            return M_loc
     def str_to_tuple(self,st):
         if st[0]=="M":
             return()
@@ -413,7 +458,7 @@ class Align(object):
                 self.paths[idx].append(node)
             
     def branch(self,last_node,node1,node2):
-        print("branch node1:",node1,"branch node2:",node2)
+        #print("branch node1:",node1,"branch node2:",node2)
         for idx in range(0,len(self.paths)):
             #print("branch testing last node:",self.paths[idx][-1])
             if (self.paths[idx][-1]==last_node):
@@ -430,16 +475,16 @@ class Align(object):
         impossible but this is defintion of termination condition on the graph.  
         '''
         
-        print("branch2 last_node:",last_node,"branch2 node1:",node1,"branch2 node2:",node2,"branch2 node3:",node3)
+        #print("branch2 last_node:",last_node,"branch2 node1:",node1,"branch2 node2:",node2,"branch2 node3:",node3)
         remove_index=0
         for idx in range(0,len(self.paths)):
-            print("branch2 paths:",self.paths[idx])
-            print(len(self.paths),idx)
+           # print("branch2 paths:",self.paths[idx])
+            #print(len(self.paths),idx)
             if (self.paths[idx][-1]==last_node):
                 remove_index=idx
-                print("found!!!",idx)
+                #print("found!!!",idx)
                 #remove this path from self.paths to print out
-        print("remove_index:",remove_index)
+        #print("remove_index:",remove_index)
         self.paths[remove_index].append([node1[0],node2[1],node3[2]])
         self.final_path.append(self.paths[remove_index])
         self.paths.remove(self.paths[remove_index])
@@ -487,7 +532,7 @@ class Align(object):
         """
         ### FILL IN ###
         start = self.find_traceback_start()
-        print("traceback_start:",start)
+        #print("traceback_start:",start)
         i = start[0]
         j = start[1]
         
@@ -499,18 +544,18 @@ class Align(object):
         #print("getpointers:",self.m_matrix.get_pointers(i,j))
 
         num_iter=0
-        while(len(self.paths)>0 and num_iter<8):
-            print("start loop self.path:")
-            self.print_paths()
+        while(len(self.paths)>0 ):
+            #print("start loop self.path:")
+            #self.print_paths()
             last_nodes = self.last_nodes()
-            print("num_iter:",num_iter,"i j",i,j,"last_nodes:",last_nodes)
+            #print("num_iter:",num_iter,"i j",i,j,"last_nodes:",last_nodes)
             
             for n in last_nodes:
                 #use n[0],n[1],n[2] to figure out if tis is M,Ix or Iy
-                print("last node:",n,"len n[0],n[1],n[2]",len(n[0]),len(n[1]),len(n[2]))
+                #print("last node:",n,"len n[0],n[1],n[2]",len(n[0]),len(n[1]),len(n[2]))
                 l=[]
                 if len(n[0])==1:
-                    print("lookup M")
+                    #print("lookup M")
                     i,j = n[0][0]
                     diag = [self.m_matrix.get_pointers(i,j)[0],[],[]] #M
                     top = [[],self.m_matrix.get_pointers(i,j)[1],[]] #ix
@@ -519,17 +564,17 @@ class Align(object):
                     l.extend(top)
                     l.extend(left)
                 elif(len(n[1])==1):
-                    print("lookup Ix")
+                    #print("lookup Ix")
                     i,j = n[1][0]
                     diag = [self.ix_matrix.get_pointers(i,j)[0],[],[]] #M
                     top = [[],self.ix_matrix.get_pointers(i,j)[1],[]] #ix
                     #left = [[],[],self.m_matrix.get_pointers(i,j)[2]] #iy
-                    print("lookup Ix diag:",diag," top:",top)
+                    #print("lookup Ix diag:",diag," top:",top)
                     l.extend(diag)
                     l.extend(top)
                     #l.extend(left)
                 elif(len(n[2])==1):
-                    print("lookup Iy")
+                    #print("lookup Iy")
                     i,j = n[2][0]
                     diag = [self.iy_matrix.get_pointers(i,j)[0],[],[]] #M
                     #top = [[],self.m_matrix.get_pointers(i,j)[1],[]] #ix
@@ -537,23 +582,23 @@ class Align(object):
                     l.extend(diag)
                     #l.extend(top)
                     l.extend(left)
-                    print("lookupIy diag:",diag," left:",left)
+                    #print("lookupIy diag:",diag," left:",left)
                 else:
                     print("*******should not see this*********")
                 flatten = [x for x in l if len(x)>0]
                 num_diag = [len(x) for x in diag]
                 num_top = [len(x) for x in top]
                 num_left = [len(x) for x in left]
-                print("diag:",diag," top:",top," left",left," flatten:",flatten,"len(flatten):",len(flatten))
-                print("num_diag,num_top,num_left",num_diag,num_top,num_left)            
+                #print("diag:",diag," top:",top," left",left," flatten:",flatten,"len(flatten):",len(flatten))
+                #print("num_diag,num_top,num_left",num_diag,num_top,num_left)            
                 #if more than one have to branch
                 if (len(flatten))==0:
-                    print("len(flatten) =0")
-                    #done or error
-                    print("nothing")
+                    #print("len(flatten) =0")
+                    print("error flatten 0")
+                    sys.exit()
                 elif(len(flatten))==1:
                     #append single flatten list and append once
-                    print("len(flatten)=1")
+                    #print("len(flatten)=1")
                     single_node = []
                     if (1 in num_diag):
                         single_node.append(diag)
@@ -562,12 +607,12 @@ class Align(object):
                     if (1 in num_left):
                         single_node.append(left)
                     self.add_one(n,single_node[0])
-                    print("after 1 add path:")
-                    self.print_paths()
+                    #print("after 1 add path:")
+                    #self.print_paths()
                 elif (len(flatten)==2 ):
                     #branch multiple entries need to branch and add separate tuple to each one. flatten, branch
                     #to number of tuples and remove tuple and add to path list
-                    print("branch len(flatten)==2")
+                    #print("branch len(flatten)==2")
                     two_nodes=[]
                     if (1 in num_diag):
                         two_nodes.append(diag)
@@ -575,10 +620,10 @@ class Align(object):
                         two_nodes.append(top)
                     if (1 in num_left):
                         two_nodes.append(left)
-                    print("len==2 two_nodes:",two_nodes)
+                    #print("len==2 two_nodes:",two_nodes)
                     self.branch(n,two_nodes[0],two_nodes[1])
-                    print("after branch self.paths:")
-                    self.print_paths()
+                    #print("after branch self.paths:")
+                    #self.print_paths()
                 elif(len(flatten)==3):
                     #termination condition
                     node=[]
@@ -590,31 +635,89 @@ class Align(object):
                         node.append(left)
                     #print("before branch2 self.paths:")
                     self.branch2(n,diag,top,left)
-                    print("after branch2 self.paths:")
-                    self.print_paths()
-                    print("after branch2 self.final_paths")
-                    self.print_final()
+                    #print("after branch2 self.paths:")
+                    #self.print_paths()
+                    #print("after branch2 self.final_paths")
+                    #self.print_final()
                 else:
                     print("should not see this if len flatten - tie")
             num_iter+=1
             #remove complete paths
             #self.remove_paths()
-        print("after while loop self.paths:",num_iter)
+        #print("after while loop self.paths:",num_iter)
 
     def write_output(self):
+        #self.final_paths 
         fh = open(self.output_file,"w")
         fh.write(str(self.score))
         fh.write("\n")
         fh.write("\n")
-        fh.write("AATG_C\n")
-        fh.write("A__GGC\n")
-        fh.write("\n")
-        fh.write("ATG_C\n")
-        fh.write("A_GGC\n")
-        fh.write("\n")
-        fh.close()
-        return None
+        for idx in range(0,len(self.final_path)):
+            firstString=[]
+            secondString=[]
+            first_idx=0
+            second_idx=0
+            #print(self.align_params.seq_a,self.align_params.seq_b)
+            #print("idx:",idx," path:",self.final_path[idx])
+            
+            for node_idx in range(0,len(self.final_path[idx])-1):
+                node = self.final_path[idx][node_idx]
+                #print("node_idx:",node_idx,"node:",node)
+                #print("first_idx:",first_idx," second_idx:",second_idx)
+                if (len(node[0])==1):
+                    #M
+                    #print("M firstString:",self.align_params.seq_a[-(1+first_idx)]," secondString:",self.align_params.seq_b[-(1+second_idx)])
+                    firstString.append(self.align_params.seq_a[-(1+first_idx)])
+                    secondString.append(self.align_params.seq_b[-(1+second_idx)])
+                    first_idx +=1
+                    second_idx +=1
+                elif(len(node[1])==1):
+                    #Ix 
+                    #print("Ix firstString:",self.align_params.seq_a[-(1+first_idx)]," secondString: _",)
+                    firstString.append(self.align_params.seq_a[-(1+first_idx)])
+                    secondString.append('_')
+                    first_idx +=1
+                elif(len(node[2])==1):
+                    #Iy
+                    #print("Iy firstString: _ secondString:",self.align_params.seq_b[-(1+second_idx)])
+                    firstString.append('_')
+                    secondString.append(self.align_params.seq_b[-(1+second_idx)])
+                    second_idx +=1
+                elif(len(node[0]) and len(node[1]) and len(node[2])):
+                    #termination not guaranteed
+                    #print("3 node termination")
+                    first_idx=0
+                    second_idx=0
+                    firstString=[]
+                    secondString=[]
+                else:
+                    #other termination
+                    print("else termination missing condition")
+                #print("final string")
+                str1 = ("".join (x for x in firstString))
+                str2 = ("".join (x for x in secondString))
+                str2_rev = str2[::-1]  
+                str1_rev = str1[::-1]
+                #print(("".join (x for x in firstString)),("".join (x for x in secondString)))
+                #print("----------")
+            #print("rev:",str1_rev,str2_rev)
+            fh.write(str1_rev)
+            fh.write("\n")
+            fh.write(str2_rev)
+            fh.write("\n")
+            fh.write("\n")
+            #print("----------")
+         
+            #print("end of path")
+            #print("/n")
+            
+        first_idx=0
+        second_idx=0
+        firstString=[]
+        secondString=[]
 
+        fh.close()
+        
 def main():
     # check that the file is being properly used
     if (len(sys.argv) !=3):
@@ -629,7 +732,7 @@ def main():
     align = Align(input_file, output_file)
     align.align()
     align.write_output()    
-    #align.traceback()
+    
 
 if __name__=="__main__":
     main()
