@@ -27,6 +27,15 @@ TEST_INPUT_FILE="test_example.input"
 class TestAlignmentClasses(unittest.TestCase):
     '''
     def init():
+        align_params = AlignmentParameters()
+        align_params.seq_a = "AATGC"
+        align_params.seq_b = "ACGT"
+        #we dont need to create sapearate score matrices this way. 
+        #what if global score on ix,iy? start at M anyay? 
+        align = Align("", "")
+        
+        align.align_params = align_params
+        align.init_matrix()
         self.m = []
         self.m.append([0.,0.,0.,0.,0.])
         self.m.append([0.,1.0,0.,0.,0.])
@@ -60,17 +69,69 @@ class TestAlignmentClasses(unittest.TestCase):
         match_matrix.set_score("A", "C", 5)
         #should do an assert of all the entries!
         self.assertEqual(match_matrix.get_score("A", "C"), 5)
-
-    
-    def test_score_matrix_score(self):
+    #make align matrix, set align_params seqa and seqb to get teeh m,ix,iy matrix
+    def test_get_last_column_row_max(self):
+        M = ScoreMatrix("M",3,3)
+        M.set_score(1,1,3)
+        M.set_score(1,2,5)
+        M.set_score(2,1,3)
+        M.set_score(2,2,4)
+        max,loc = M.get_last_column_row_max()
+        print("test_get_last_colum_row_max:",max,loc)
+        self.assertEqual(str(M.get_last_column_row_max()),"(5.0, (2, 1))")
+        
+    def test_matrix_score(self):
         """
         Tests score matrix object score set + get methods
         """
         ### FILL IN ###
         # this should be very similar to test match matrix
-        M = ScoreMatrix("M",2,2)
-        M.set_score(1,1,3)
-        self.assertEqual(M.get_score(1,1),3)
+        align_params = AlignmentParameters()
+        align_params.seq_a = "ACGT"
+        align_params.seq_b = "ACGT"
+        #we dont need to create sapearate score matrices this way. 
+        #what if global score on ix,iy? start at M anyay? 
+        align = Align("", "")
+        
+        align.align_params = align_params
+        align.init_matrix()
+        #align.m_matrix = ScoreMatrix(4,4)
+        #align.ix_matrix = ScoreMatrix(4,4)
+        #align.iy_matrix = ScoreMatrix(4,4)
+        align.m_matrix.set_score(1,1,4)
+        align.m_matrix.set_score(1,2,6)
+        align.m_matrix.set_score(1,3,4)
+        align.m_matrix.set_score(2,1,4)
+        align.m_matrix.set_score(2,1,4)
+        align.m_matrix.set_score(2,1,4)
+        align.m_matrix.set_score(3,1,4)
+        align.m_matrix.set_score(3,2,4)
+        align.m_matrix.set_score(3,3,4)
+        ## 
+        align.ix_matrix.set_score(1,1,4)
+        align.ix_matrix.set_score(1,2,5)
+        align.ix_matrix.set_score(1,3,4)
+        align.ix_matrix.set_score(2,1,4)
+        align.ix_matrix.set_score(2,1,4)
+        align.ix_matrix.set_score(2,1,4)
+        align.ix_matrix.set_score(3,1,4)
+        align.ix_matrix.set_score(3,2,4)
+        align.ix_matrix.set_score(3,3,4)
+        #
+        align.iy_matrix.set_score(1,1,4)
+        align.iy_matrix.set_score(1,2,5)
+        align.iy_matrix.set_score(1,3,4)
+        align.iy_matrix.set_score(2,1,4)
+        align.iy_matrix.set_score(2,1,4)
+        align.iy_matrix.set_score(2,1,4)
+        align.iy_matrix.set_score(3,1,4)
+        align.iy_matrix.set_score(3,2,4)
+        align.iy_matrix.set_score(3,3,4)
+        maxM = align.m_matrix.get_last_column_row_max()
+        maxIy = align.ix_matrix.get_last_column_row_max()
+        maxIx = align.iy_matrix.get_last_column_row_max()
+        print("##########",maxM,maxIx,maxIy)
+        #self.assertEqual(M.get_score(1,1),3)
         
     
     def test_score_matrix_pointers(self):
@@ -186,10 +247,6 @@ class TestAlignmentClasses(unittest.TestCase):
         align.update_iy(2, 3)
         self.assertEqual(align.iy_matrix.get_score(2,3), 2)
         #this is equal also, M and Iy. Not sure what convention is
-        
-    
-    def test_branch(self):
-        return
 
     def test_traceback_start(self):
         """
@@ -197,14 +254,20 @@ class TestAlignmentClasses(unittest.TestCase):
         Should test local and global alignment!
         """
         align_params = AlignmentParameters()
+        align_params.seq_a = "ACGT"
+        align_params.seq_b = "ACGT"
+        align_params.global_alignment=True
+        
         align = Align("", "")
         align.align_params = align_params
-        align_params.global_alignment=True
-        align.m_matrix = ScoreMatrix("M", 5, 4)
-        print("m_matrix:",align.m_matrix.nrow,align.m_matrix.ncol)
+        #need init matrix for unit tests
+        align.init_matrix()
+        #align.m_matrix = ScoreMatrix("M", 4, 4)
+        #align.ix_matrix = ScoreMatrix("Ix", 4, 4)
+        #align.iy_matrix = ScoreMatrix("Iy", 4, 4)
         #careful m_matrix has dims nrow,ncol, max value is nrow-1,ncol-1 bc they mixed conventions 
         #they start 1 indexing on seq_a and seb_b. Sigh. 
-        align.m_matrix.set_score(4,3, 3)
+        align.m_matrix.set_score(3,4, 3)
         start = align.find_traceback_start()
         print(start)
         self.assertEqual(align.find_traceback_start(), (4,3))

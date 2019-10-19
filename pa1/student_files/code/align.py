@@ -75,8 +75,7 @@ class Node:
     self.M_pointer = []
     self.Ix_pointer = []
     self.Iy_pointer = []
-    #self.pointers = []
-
+    
 class ScoreMatrix(object):
     """
     Object to store a score matrix, which generated during the alignment process. The score matrix consists of a 2-D array of
@@ -146,7 +145,7 @@ class ScoreMatrix(object):
             0.0, 1.0, 0.0, 0.0, 0.0
             0.0, 1.0, 1.0, 1.0, 1.0
             0.0, 0.0, 1.0, 1.0, 1.0
-            0.0, 0.0, 2.0, 2.0, 1.0
+            0.0, 0.0, 2.0, 2.0, 1.0    
             0.0, 0.0, 1.0, 2.0, 3.0
 
         """
@@ -154,7 +153,7 @@ class ScoreMatrix(object):
         print(self.name+" = ")
         for row in self.score_matrix:
             print(" ".join([str(x.weight) for x in row]))
-    import csv
+    #import csv
     def write_scores(self,file_name):
         with open(file_name,'w',newline='\n') as fh:
             for row in self.score_matrix:
@@ -170,6 +169,33 @@ class ScoreMatrix(object):
                     max = self.score_matrix[i][j].weight
                     tuple_loc=(i,j)
         return max,tuple_loc
+    
+    #for global search in last row and last col
+    def get_last_column_row_max(self):
+        
+        max = -float("inf")
+        max_tuple=(None,None)
+        max_find=-float("inf")
+        
+        #search last col
+        #print("get_last_column_row_max nrow,ncol",self.nrow,self.ncol)
+        for i in range(0,self.nrow):
+            #print("i,self.ncol-1",i,self.ncol-1,self.score_matrix[i][self.ncol-1].weight)
+            if self.score_matrix[i][self.ncol-1].weight > max:
+                max = self.score_matrix[i][self.ncol-1].weight
+                #print("new max: i:",max,i)
+                max_find = (i,self.ncol-1)
+        #search last row
+        for j in range(0,self.ncol):
+            #print("nrow-1,j",self.nrow-1,j,self.score_matrix[self.nrow-1][j].weight)
+            if self.score_matrix[self.nrow-1][j].weight > max:
+                max = self.score_matrix[self.nrow-1][j].weight
+                max_find = (self.row-1,j)
+                #print("new max: j:",max)
+        
+        #format_tuple = (tuple_loc[1],tuple_loc[0])
+        #print("get_last_column_row_max:",max,max_find)
+        return max, max_find
 
     def print_pointers_old(self):
         """
@@ -221,6 +247,9 @@ class AlignmentParameters(object):
         Input:
            input_file = specially formatted alignment input file
         """
+        #with open(input_file,"r") as fh
+        #   for l in fh:
+        #       lines = l.rstrip('\n')
         lines = [line.rstrip('\n') for line in open(input_file)]
         self.seq_a = lines[0] 
         self.seq_b = lines[1] 
@@ -268,6 +297,8 @@ class Align(object):
         self.iy_matrix = None
         self.score = 0.0
         self.final_path=[]
+        self.start_i = None #start_pos i(row) where to start printing for traceback
+        self.start_j = None #start_pos j(col) where to start printing for traceback
         #node = [[(4,5)],[],[]] becuse we need a notation for an empty tuple 
         #path=[[node1],[node2],[node3]]
         #paths = [[path],[path] = [ [[node1],[node2],[node3]], [[node1],[node2],[node3]] ]
@@ -307,9 +338,10 @@ class Align(object):
             for j in range(0,len(self.align_params.seq_b)+1):
                 self.update(i,j)   
         #self.debug_print()
-        self.m_matrix.write_scores("m.csv")
-        self.ix_matrix.write_scores("ix.csv")
-        self.iy_matrix.write_scores("iy.csv")       
+        #self.m_matrix.write_scores("m.csv")
+        #self.ix_matrix.write_scores("ix.csv")
+        #self.iy_matrix.write_scores("iy.csv")       
+    
     def debug_print(self):           
         print("----------------")
         self.m_matrix.print_scores()
@@ -341,26 +373,30 @@ class Align(object):
         if (row==0 and col==0):
             self.m_matrix.set_score(row,col,0.0)
         elif(row!=0 and col!=0):
-            firstM =  self.m_matrix.get_score(row-1,col-1) + (self.align_params.match_matrix.get_score(self.align_params.seq_a[row-1],self.align_params.seq_b[col-1]))
-            secondM = self.ix_matrix.get_score(row-1,col-1) + (self.align_params.match_matrix.get_score(self.align_params.seq_a[row-1],self.align_params.seq_b[col-1]))
-            thirdM =  self.iy_matrix.get_score(row-1,col-1) + (self.align_params.match_matrix.get_score(self.align_params.seq_a[row-1],self.align_params.seq_b[col-1]))
-            maxM = max(firstM,secondM,thirdM)
-            #print("update_m:",row,col,firstM,secondM,thirdM,maxM)
+            M =  round(self.m_matrix.get_score(row-1,col-1) + (self.align_params.match_matrix.get_score(self.align_params.seq_a[row-1],self.align_params.seq_b[col-1])),3)
+            Ix = round(self.ix_matrix.get_score(row-1,col-1) + (self.align_params.match_matrix.get_score(self.align_params.seq_a[row-1],self.align_params.seq_b[col-1])),3)
+            Iy =  round(self.iy_matrix.get_score(row-1,col-1) + (self.align_params.match_matrix.get_score(self.align_params.seq_a[row-1],self.align_params.seq_b[col-1])),3)
+            maxM = max(M,Ix,Iy)
+            #print(self.align_params.seq_a[row],self.align_params.seq_a[row-1])
+            #print()
+            #print("m(row-1,col-1):",self.m_matrix.get_score(row-1,col-1),,self.align_params.seq_b[col-1])
+            #self.align_params.match_matrix.get_score(self.align_params.seq_a[row-1])
+            #print("update_m:",row,col,M,Ix,Iy,maxM)
             self.m_matrix.set_score(row,col, maxM)
             #local
             if self.align_params.global_alignment==False:
+                #print("*********M pointer M local")
                 if self.m_matrix.get_score(row,col) < 0.:
                     self.m_matrix.set_score(row,col,0.) 
             #set pointers       
-            if fuzzy_equals(firstM,maxM):
+            if fuzzy_equals(M,maxM):
                 #print("update_m m_M pointer update:",row-1,col-1)
-                #where is the pointer? huh? 
                 self.m_matrix.M_pointer_add(row,col,(row-1,col-1))
-            if fuzzy_equals(secondM,maxM):
-                #print("update_m ix_Ix pointer update:",row-1,col-1)
+            if fuzzy_equals(Ix,maxM):
+                #print("update_m m_Ix pointer update:",row-1,col-1)
                 self.m_matrix.Ix_pointer_add(row,col,(row-1,col-1))
-            if fuzzy_equals(thirdM,maxM):
-                #print("update_m iy_Iy pointer update:",row-1,col-1)
+            if fuzzy_equals(Iy,maxM):
+                #print("update_m m_Iy pointer update:",row-1,col-1)
                 self.m_matrix.Iy_pointer_add(row,col,(row-1,col-1))
                 
                 
@@ -369,44 +405,45 @@ class Align(object):
         if (row==0 and col==0):
             self.ix_matrix.set_score(row,col,0.0)
         elif(row!=0 and col!=0):
-            firstIx = self.m_matrix.get_score(row-1,col) - self.align_params.dy
-            secondIx = self.ix_matrix.get_score(row-1,col) - self.align_params.ey
-            maxIx = max(firstIx,secondIx)
-            #print("update_ix:",row,col,firstIx,secondIx,maxIx)
+            M = round(self.m_matrix.get_score(row-1,col) - self.align_params.dy,3)
+            Ix = round(self.ix_matrix.get_score(row-1,col) - self.align_params.ey,3)
+            maxIx = max(M,Ix)
+            #print("update_ix:",row,col,M,Ix,maxIx)
             self.ix_matrix.set_score(row,col, maxIx)
             #local 
             if self.align_params.global_alignment==False:
+                #print("*********Ix pointer Ix local")
                 if self.ix_matrix.get_score(row,col) < 0.:
                     self.ix_matrix.set_score(row,col,0.) 
             #set pointers
-            if fuzzy_equals(firstIx,maxIx):
+            if fuzzy_equals(M,maxIx):
                 #print("update_ix ix_M pointer update:",row-1,col)
                 self.ix_matrix.M_pointer_add(row,col,(row-1,col))
-            if fuzzy_equals(secondIx,maxIx):
-                #print("update_ix ix_Iy pointer update:",row-1,col)
+            if fuzzy_equals(Ix,maxIx):
+                #print("update_ix ix_Ix pointer update:",row-1,col)
                 self.ix_matrix.Ix_pointer_add(row,col,(row-1,col))
 
     def update_iy(self, row, col):        
         if (row==0 and col==0):
             self.iy_matrix.set_score(row,col,0.0)
         elif(row!=0 and col!=0):
-            firstIy = self.m_matrix.get_score(row,col-1) - self.align_params.dx
-            secondIy = self.iy_matrix.get_score(row,col-1) - self.align_params.ex
-            maxIy = max(firstIy,secondIy)
-            #print("update_iy:",row,col,firstIy,secondIy,maxIy)
+            M = round(self.m_matrix.get_score(row,col-1) - self.align_params.dx,3)
+            Iy = round(self.iy_matrix.get_score(row,col-1) - self.align_params.ex,3)
+            maxIy = max(M,Iy)
+            #print("update_iy:",row,col,M,Iy,maxIy)
             self.iy_matrix.set_score(row,col, maxIy)
             #local
             if self.align_params.global_alignment==False:
+                #print("*********Iy pointer Iy local")
                 if self.iy_matrix.get_score(row,col) < 0.:
                     self.iy_matrix.set_score(row,col,0.) 
             #set pointers
-            if fuzzy_equals(firstIy,maxIy):
+            if fuzzy_equals(M,maxIy):
                 #print("update_iy iy_M pointer update:",row,col-1)
                 self.iy_matrix.M_pointer_add(row,col,(row,col-1))
-            if fuzzy_equals(secondIy,maxIy):
+            if fuzzy_equals(Iy,maxIy):
                 #print("update_iy iy_Iy pointer update:",row,col-1)
                 self.iy_matrix.Iy_pointer_add(row,col,(row,col-1))   
-
 
     def find_traceback_start(self):
         """
@@ -419,34 +456,41 @@ class Align(object):
              (ex. [(1,2), (3,4)])
         """
         ### FILL IN ###
+        #very tricky the max for alignment.example2 is not at teh last square. 
+        #did not know this was a case. not clear. Assime he means on teh last row
+        #and column only since we are starting there
         if self.align_params.global_alignment==True:
-            M_score = self.m_matrix.get_score(self.m_matrix.nrow-1,self.m_matrix.ncol-1)
-            Ix_score = self.ix_matrix.get_score(self.m_matrix.nrow-1,self.m_matrix.ncol-1)
-            Iy_score = self.m_matrix.get_score(self.m_matrix.nrow-1,self.m_matrix.ncol-1)
+            #print("global M find max")
+            M_score,M_loc=self.m_matrix.get_last_column_row_max()
+            #print("Ix find max")
+            Ix_score,Ix_loc=self.m_matrix.get_last_column_row_max()
+            #print("Iy find max")
+            Iy_score,Iy_loc=self.m_matrix.get_last_column_row_max()
             self.score = round(max(M_score,Ix_score,Iy_score),2)
 
-            #print("*****M score:",M_score)
-            #print("*****Ix score:",Ix_score)
-            #print("*****Iy score:",Iy_score)
+
+            #print("*****global M score:",M_score,M_loc)
+            #print("*****global Ix score:",Ix_score,Ix_loc)
+            #print("*****global Iy score:",Iy_score,Iy_loc)
             #print("*****self.score:",self.score)
-            
-            return (self.m_matrix.nrow-1, self.m_matrix.ncol-1)
+            #start position can be from Ix,Iy,M location. Meed to modify to start there 
+            # Need test case to start in Ix, Iy        
+            if max(M_score,Ix_score,Iy_score)==M_score:
+                return M_loc
+            elif max(M_score,Ix_score,Iy_score)==Ix_score:
+                return Ix_loc
+            elif max(M_score,Ix_score,Iy_score):
+                return Iy_loc
         else:
+            #print("start traceback local")
             maxM,M_loc = self.m_matrix.get_max()
             maxIx,Ix_loc = self.ix_matrix.get_max()
             maxIy,Iy_loc = self.iy_matrix.get_max()
             
             max_all= max(maxM, maxIx, maxIy)
-            
+            #print("local start maxM,maxIx,maxIy:",maxM,maxIx,maxIy)
             self.score = max_all
-
             return M_loc
-    def str_to_tuple(self,st):
-        if st[0]=="M":
-            return()
-        else:
-            #Ix or Iy
-            return
 
     def add_one(self,last_node, node):
         #print("add_one last_node:",last_node)
@@ -515,12 +559,12 @@ class Align(object):
         return nodes
 
     def print_paths(self):
-        print("num_paths:",len(self.paths))
+        #print("num_paths:",len(self.paths))
         for idx in range(0,len(self.paths)):
             print(self.paths[idx])
     
     def print_final(self):
-        print("num_paths:",len(self.final_path))
+        #print("num_paths:",len(self.final_path))
         for idx in range(0,len(self.final_path)):
             print(self.final_path[idx])
 
@@ -535,7 +579,9 @@ class Align(object):
         #print("traceback_start:",start)
         i = start[0]
         j = start[1]
-        
+        self.start_i = i
+        self.start_j = j
+
         #print("self.paths before adding start:",self.paths)
         self.addM(start)
         #print("self.paths after adding start node",self.paths)
@@ -568,19 +614,15 @@ class Align(object):
                     i,j = n[1][0]
                     diag = [self.ix_matrix.get_pointers(i,j)[0],[],[]] #M
                     top = [[],self.ix_matrix.get_pointers(i,j)[1],[]] #ix
-                    #left = [[],[],self.m_matrix.get_pointers(i,j)[2]] #iy
                     #print("lookup Ix diag:",diag," top:",top)
                     l.extend(diag)
                     l.extend(top)
-                    #l.extend(left)
                 elif(len(n[2])==1):
                     #print("lookup Iy")
                     i,j = n[2][0]
                     diag = [self.iy_matrix.get_pointers(i,j)[0],[],[]] #M
-                    #top = [[],self.m_matrix.get_pointers(i,j)[1],[]] #ix
                     left = [[],[],self.iy_matrix.get_pointers(i,j)[2]] #iy
                     l.extend(diag)
-                    #l.extend(top)
                     l.extend(left)
                     #print("lookupIy diag:",diag," left:",left)
                 else:
@@ -594,7 +636,7 @@ class Align(object):
                 #if more than one have to branch
                 if (len(flatten))==0:
                     #print("len(flatten) =0")
-                    print("error flatten 0")
+                    #print("error flatten 0")
                     sys.exit()
                 elif(len(flatten))==1:
                     #append single flatten list and append once
@@ -648,6 +690,13 @@ class Align(object):
 
     def write_output(self):
         #self.final_paths 
+        #offset to start at start position minus index from end for both A and B strings
+        #print("write output final paths")
+        #print("the start position is wrong")
+        #print(len(self.align_params.seq_a),len(self.align_params.seq_b))
+        #print("self.start_i:",self.start_i," self.start_j:",self.start_j,"diff self.nrow-self.start_i:",len(self.align_params.seq_a)-self.start_i," self.ncol-self.start_j:",len(self.align_params.seq_b)-self.start_j)
+        #self.print_final()
+        #print("============")
         fh = open(self.output_file,"w")
         fh.write(str(self.score))
         fh.write("\n")
@@ -655,8 +704,8 @@ class Align(object):
         for idx in range(0,len(self.final_path)):
             firstString=[]
             secondString=[]
-            first_idx=0
-            second_idx=0
+            first_idx=len(self.align_params.seq_a)-self.start_i #this is wrong
+            second_idx=len(self.align_params.seq_b)-self.start_j #this is wrong
             #print(self.align_params.seq_a,self.align_params.seq_b)
             #print("idx:",idx," path:",self.final_path[idx])
             
