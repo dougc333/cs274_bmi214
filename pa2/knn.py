@@ -23,11 +23,12 @@ class KNN(object):
   
   def get_assignments(self,k, fn):
     '''
-    input:
+    input:k nearest neighbirs, fn fraction
     output:return list of integer 0 and 1. 
     '''
     self.k = k
     self.fn = fn
+
     
   def kNN(self,training_set, test):
     '''
