@@ -171,10 +171,13 @@ class KNN(object):
     fp_zero = 0
     fn_one = 0
     tn_zero = 0
+    actual=[]
+    misclassified={}
     for idx in range(0,len(healthy_dis)):
         subject = healthy_dis[idx][0]
         status = healthy_dis[idx][1]
         #print(type(status),type(subject),"status:",status," subject:",subject)
+        #actual.append(int(self.samp[subject]))
         if(status)==int(self.samp[subject]):
             num_correct+=1
         else:
@@ -183,8 +186,18 @@ class KNN(object):
             tp_one+=1
         elif(int(self.samp[subject])==1 and status==0):
             fn_one+=1
+            #print(subject+"fn")
+            #if self.samp[subject] not in misclassified.keys():
+            #  misclassified[self.samp[subject]]=1
+            #else:
+            #  misclassified[self.samp[subject]]+=1
         elif(int(self.samp[subject])==0 and status==1):
             fp_zero+=1
+            #print(subject+"fp")
+            #if self.samp[subject] not in misclassified.keys():
+            #  misclassified[self.samp[subject]]=1
+            #else:
+            #  misclassified[self.samp[subject]]+=1
         elif(int(self.samp[subject])==0 and status==0):
             tn_zero+=1
         else:
@@ -194,11 +207,15 @@ class KNN(object):
     #print("tp_one:",tp_one," fn_one:",fn_one," fp_zero:",fp_zero," tn_zero:",tn_zero)
     tpr = tp_one/(tp_one+fn_one)
     fpr = fp_zero/(fp_zero+tn_zero)
+    #print(misclassified)
     #print("tpr:",tpr," fpr:",fpr)
+    #print("actual:",actual)
+    #print("healthy_sis:",[x[1] for x in healthy_dis])
     #print("sensitivity:",tpr, "specifity:",1-fpr)
     #print("accuracy:",(tp_one+tn_zero)/len(healthy_dis)) #need to return this or the tp,fn stats
     sens = tpr
     spec = 1-fpr
+    #return tpr,fpr
     return [sens, spec]
 
 if __name__ == "__main__":
@@ -220,11 +237,13 @@ if __name__ == "__main__":
   five = knn.calc_metrics(3,0.75)
   six = knn.calc_metrics(3,0.9)
   seven = knn.calc_metrics(3,1.0)
+  
   #print out accuracy and types of misclassification. greater than 3. 
-  first = knn.get_assignments(1,0.5)
-  second = knn.get_assignments(2,0.5)
-  third = knn.get_assignments(3,0.5)
-  fourth = knn.get_assignments(4,0.5)
-  fifth = knn.get_assignments(5,0.5)
-  sixth = knn.get_assignments(6,0.5)
+  
+  first = knn.calc_metrics(1,0.5)
+  second = knn.calc_metrics(2,0.5)
+  third = knn.calc_metrics(3,0.5)
+  fourth = knn.calc_metrics(4,0.5)
+  fifth = knn.calc_metrics(5,0.5)
+  sixth = knn.calc_metrics(6,0.5)
   '''
