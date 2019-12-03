@@ -1,6 +1,6 @@
 
 import argparse
-from networkx import 
+import networkx as nx
 from networkgen import NetworkGen
 
 class PlotGraph:
@@ -8,7 +8,7 @@ class PlotGraph:
         self.edgelist = arg1
         self.pnodes = arg2
         self.outputdir = arg3
-        
+        self.G=nx.Graph()
         self.init()
         
     def init(self):
@@ -19,7 +19,16 @@ class PlotGraph:
             lines=h=fh.readlines()
             for l in lines:
                 print(l.split()[0],l.split()[0])
-
+        df_nodes = pd.read_csv("data/protein_nodes.csv")
+        proteins = []
+        for row in df_nodes.iterrows():
+            #print(type(row),len(row))
+            #print(row[0],row[1].to_dict())
+            u_acc = row[1].to_dict()['uniprot_accession']
+            u_id = row[1].to_dict()['uniprot_id']
+            ind = row[1].to_dict()['indications']
+            #print(u_acc, u_id, ind)
+            proteins.append(u_acc)
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
