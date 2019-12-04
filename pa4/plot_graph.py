@@ -2,33 +2,69 @@
 import argparse
 import networkx as nx
 from networkgen import NetworkGen
-
+import matplotlib.pyplot as plt
+import os
 class PlotGraph:
     def __init__(self,arg1, arg2, arg3):
-        self.edgelist = arg1
-        self.pnodes = arg2
+        self.edgelist_file = arg1
+        self.pnodes_file = arg2
         self.outputdir = arg3
         self.G=nx.Graph()
+        self.H=None
         self.init()
         
     def init(self):
         '''
         draw and do shit on adj list sing protein_nodes.csv 
         '''
-        with open(self.edgelist) as fh:
-            lines=h=fh.readlines()
+        name,color = self.read_protein(self.pnodes_file)
+
+        with open(self.edgelist_file) as fh:
+            lines = fh.readlines()
             for l in lines:
-                print(l.split()[0],l.split()[0])
-        df_nodes = pd.read_csv("data/protein_nodes.csv")
-        proteins = []
-        for row in df_nodes.iterrows():
-            #print(type(row),len(row))
-            #print(row[0],row[1].to_dict())
-            u_acc = row[1].to_dict()['uniprot_accession']
-            u_id = row[1].to_dict()['uniprot_id']
-            ind = row[1].to_dict()['indications']
-            #print(u_acc, u_id, ind)
-            proteins.append(u_acc)
+                if(len(l)>0):
+                    p = l.split()
+                    first=p[0]
+                    second = p[1]
+                    self.G.add_node(first)
+                    self.G.add_node(second)
+                    self.G.add_edge(first,second)
+            mapping={}
+
+        #rename the nodes and color them. 
+        for x in list(self.G.nodes):
+            #make mapping
+            mapping[x]=name[x]
+        self.H=nx.relabel_nodes(self.G,mapping)
+        colormap=[]
+        for node in self.G:
+            colormap.append(color[node])
+        nx.draw(self.H,node_color = colormap)
+        plt.savefig(os.path.join(self.outputdir,"network.png"))
+        #plt.plot()
+        plt.figure(figsize=(8, 8),dpi=150)
+        
+    def read_protein(self,filename):
+        name={}
+        color={}
+        with open(filename) as fh:
+            lines = fh.readlines()
+            for idx in range(0,len(lines)):
+                uni_acc=lines[idx].split(sep=",")[0]
+                uni_id=lines[idx].split(sep=",")[1]
+                ind=lines[idx].split(sep=",")[2].strip()
+                name[uni_acc]=uni_id
+                if ind=="bp":
+                    color[uni_acc] = "red"
+                elif ind=="bp;diabetes":
+                    color[uni_acc] = "purple"
+                elif ind=="bp;cholesterol":
+                    color[uni_acc] = "green"
+                elif ind=="bp;cholesterol;diabetes":
+                    color[uni_acc] = "blue"
+        #print(name['P21918'])
+        #print(color['P21918'])
+        return name,color
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()

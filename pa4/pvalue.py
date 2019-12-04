@@ -22,10 +22,11 @@ class Pvalue:
     def init(self):
         if len(self.A)>0 and len(self.B)>0:
             self.p()
+        
 
     def p(self):
         pval = self.pb(self.A,self.B)
-        print(pval)
+        print("pval",pval)
         return pval
 
     def tsummary_AB(self,A,B):
